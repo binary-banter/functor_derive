@@ -63,21 +63,21 @@ fn struct_vec() {
 }
 
 #[test]
-fn struct_vecdeqeue() {
+fn struct_vecdeque() {
     #[derive(Debug, Functor)]
-    struct StructHashMap<A> {
+    struct StructVecDeque<A> {
         field_1: A,
         field_2: VecDeque<A>,
     }
 
-    let x = StructHashMap::<usize> {
+    let x = StructVecDeque::<usize> {
         field_1: 42,
         field_2: VecDeque::from([13, 14, 15]),
     };
 
     assert_eq!(
         x.fmap(&mut |x| x as u64).type_id(),
-        TypeId::of::<StructHashMap<u64>>()
+        TypeId::of::<StructVecDeque<u64>>()
     );
 }
 
