@@ -1,9 +1,11 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use proc_macro2::Ident;
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, GenericParam, Type, TypeParam, PathArguments, PathSegment, GenericArgument};
+use quote::quote;
+use syn::{
+    parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, PathArguments,
+    Type, TypeParam,
+};
 
 /// Example of user-defined [functor_derive mode macro][1]
 ///
@@ -57,7 +59,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         impl<#param> functor_derive_lib::Functor<#param> for #def_name<#param> {
             type Target<__T> = #def_name<__T>;
 
-            fn fmap<__B>(self, mut __f: impl FnMut(#param) -> __B) -> Self::Target<__B> {
+            fn fmap<__B>(self, __f: &mut impl FnMut(#param) -> __B) -> Self::Target<__B> {
                 #tokens
             }
         }
@@ -71,11 +73,11 @@ fn generate_map_from_type(
     field: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     match typ {
-        typ@Type::Path(path) => {
+        typ @ Type::Path(path) => {
             let segments: Vec<_> = path.path.segments.iter().collect();
 
-            if type_contains_param(&typ, param) {
-                if segments.len() == 1 && segments[0].ident.to_string() == param.ident.to_string() {
+            if type_contains_param(typ, param) {
+                if segments.len() == 1 && segments[0].ident == param.ident {
                     quote!(__f(#field))
                 } else {
                     quote!(#field.fmap(__f))
@@ -83,6 +85,18 @@ fn generate_map_from_type(
             } else {
                 quote!(#field)
             }
+        }
+        Type::Tuple(tuple) => {
+            let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
+                if type_contains_param(x, param) {
+                    // todo: not correct
+                    quote!(__f(#field.#i),)
+                } else {
+                    quote!(#field.#i,)
+                }
+            });
+
+            quote!((#(#positions)*))
         }
         Type::Array(_) => todo!(),
         Type::BareFn(_) => todo!(),
@@ -96,19 +110,17 @@ fn generate_map_from_type(
         Type::Reference(_) => todo!(),
         Type::Slice(_) => todo!(),
         Type::TraitObject(_) => todo!(),
-        Type::Tuple(_) => todo!(),
         Type::Verbatim(_) => todo!(),
         _ => panic!("Found unknown type"),
     }
 }
 
-fn type_contains_param(typ: &Type, param: &TypeParam,) -> bool {
+fn type_contains_param(typ: &Type, param: &TypeParam) -> bool {
     match typ {
-
         Type::Path(path) => {
             let segments: Vec<_> = path.path.segments.iter().collect();
-            if segments.len() == 1 && segments[0].ident.to_string() == param.ident.to_string() {
-                return true
+            if segments.len() == 1 && segments[0].ident == param.ident {
+                return true;
             }
 
             let PathArguments::AngleBracketed(bs) = &segments.last().unwrap().arguments else {
@@ -123,19 +135,19 @@ fn type_contains_param(typ: &Type, param: &TypeParam,) -> bool {
                 }
             })
         }
-        Type::Array(_) =>  todo!(),
-        Type::BareFn(_) =>  todo!(),
-        Type::Group(_) =>  todo!(),
-        Type::ImplTrait(_) =>  todo!(),
-        Type::Infer(_) =>  todo!(),
-        Type::Macro(_) =>  todo!(),
-        Type::Never(_) =>  todo!(),
-        Type::Paren(_) =>  todo!(),
-        Type::Ptr(_) =>  todo!(),
-        Type::Reference(_) =>  todo!(),
-        Type::Slice(_) =>  todo!(),
-        Type::TraitObject(_) =>  todo!(),
-        Type::Tuple(_) =>  todo!(),
+        Type::Array(_) => todo!(),
+        Type::BareFn(_) => todo!(),
+        Type::Group(_) => todo!(),
+        Type::ImplTrait(_) => todo!(),
+        Type::Infer(_) => todo!(),
+        Type::Macro(_) => todo!(),
+        Type::Never(_) => todo!(),
+        Type::Paren(_) => todo!(),
+        Type::Ptr(_) => todo!(),
+        Type::Reference(_) => todo!(),
+        Type::Slice(_) => todo!(),
+        Type::TraitObject(_) => todo!(),
+        Type::Tuple(_) => todo!(),
         Type::Verbatim(_) => todo!(),
         _ => panic!("Found unknown type"),
     }
