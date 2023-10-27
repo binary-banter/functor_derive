@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "functor_derive_lib",
+    "functor_derive",
+]
