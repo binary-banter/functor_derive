@@ -1,6 +1,6 @@
 [package]
 name = "functor_derive"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Jonathan Brouwer <jonathantbrouwer@gmail.com>", "Julia Dijkstra"]
 description = "A derive macro to derive a functor for a type."
 keywords = ["proc-macro", "derive", "functor"]
