@@ -1,12 +1,11 @@
 # Functor Derive
-This crate can generate a Functor for generic structs and enums. 
+This crate can generate a Functor for generic structs and enums.
 
 A `Functor` represents a type that can apply a function to its inner values
 and produce new values of the same structure. This allows you to transform
 the contents of a container (or any type) without changing the shape of the container.
 
 ```rust
-use functor_derive_lib::Functor;
 use functor_derive::Functor;
 
 #[derive(Functor)]
@@ -29,13 +28,13 @@ fn main() {
 This crate works for almost any struct or enum definition. It can handle arrays, tuples, and nested types perfectly.
 
 - [x] Structs
-  - [x] Named
-  - [x] Unnamed
-  - [ ] Unit - Rust does not allow generic Unit Structs.
+    - [x] Named
+    - [x] Unnamed
+    - [ ] Unit - Rust does not allow generic Unit Structs.
 - [x] Enums
-  - [x] Named variants
-  - [x] Unnamed variants
-  - [x] Unit variants
+    - [x] Named variants
+    - [x] Unnamed variants
+    - [x] Unit variants
 - [x] Arrays
 - [x] Tuples
 - [x] `std::collections`: Vec, VecDeque, LinkedList, HashMap*, BTreeMap*, Result, Option, PhantomData

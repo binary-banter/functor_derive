@@ -1,4 +1,3 @@
-use functor_derive_lib::Functor;
 use functor_derive::Functor;
 
 #[derive(Functor)]
