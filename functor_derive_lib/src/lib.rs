@@ -1,6 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, Index,
@@ -23,7 +24,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
             }
         })
         .next()
-        .expect("Expected the type to have a generic type parameter.");
+        .expect("Expected the type to have a generic type parameter.").ident;
 
     let tokens = match input.data {
         Data::Struct(s) => match s.fields {
@@ -94,7 +95,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 fn generate_map_from_type(
     typ: &Type,
-    param: &TypeParam,
+    param: &Ident,
     field: &proc_macro2::TokenStream,
 ) -> proc_macro2::TokenStream {
     match typ {
@@ -146,7 +147,7 @@ fn generate_map_from_type(
     }
 }
 
-fn type_contains_param(typ: &Type, param: &TypeParam) -> bool {
+fn type_contains_param(typ: &Type, param: &Ident) -> bool {
     match typ {
         Type::Path(path) => {
             if path.path.segments.len() == 1 && path.path.segments[0].ident == param.ident {
