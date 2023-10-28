@@ -84,7 +84,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         impl<#param> functor_derive_lib::Functor<#param> for #def_name<#param> {
             type Target<__T> = #def_name<__T>;
 
-            fn fmap<__B>(self, __f: &mut impl FnMut(#param) -> __B) -> Self::Target<__B> {
+            fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> Self::Target<__B> {
                 #tokens
             }
         }
@@ -105,7 +105,7 @@ fn generate_map_from_type(
                 if segments.len() == 1 && segments[0].ident == param.ident {
                     quote!(__f(#field))
                 } else {
-                    quote!(#field.fmap(__f))
+                    quote!(#field.fmap(&__f))
                 }
             } else {
                 quote!(#field)

@@ -21,7 +21,7 @@ fn struct_simple() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructSimple<u64>>()
     );
 }
@@ -42,7 +42,7 @@ fn struct_option() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructOption<u64>>()
     );
 }
@@ -61,7 +61,7 @@ fn struct_vec() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructVec<u64>>()
     );
 }
@@ -80,7 +80,7 @@ fn struct_vecdeque() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructVecDeque<u64>>()
     );
 }
@@ -99,7 +99,7 @@ fn struct_tuple_1() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructTuple<u64>>()
     );
 }
@@ -118,7 +118,7 @@ fn struct_tuple_2() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructTuple<u64>>()
     );
 }
@@ -137,7 +137,7 @@ fn struct_phantomdata() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructPhantomData<u64>>()
     );
 }
@@ -156,7 +156,7 @@ fn struct_hashmap() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructHashMap<u64>>()
     );
 }
@@ -175,7 +175,7 @@ fn struct_array_1() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -194,7 +194,7 @@ fn struct_array_2() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -213,7 +213,7 @@ fn struct_paren_1() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -232,7 +232,7 @@ fn struct_paren_2() {
     };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -249,7 +249,7 @@ fn enum_simple_tuple() {
     let x = EnumTuple::<usize>::Var1(18);
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<EnumTuple<u64>>()
     );
 }
@@ -266,7 +266,7 @@ fn enum_simple_struct() {
     let x = EnumStruct::<usize>::Var1 { x: 18 };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<EnumStruct<u64>>()
     );
 }
@@ -283,7 +283,7 @@ fn enum_simple_mixed() {
     let x = EnumMixed::<usize>::Var1 { x: 18 };
 
     assert_eq!(
-        x.fmap(&mut |x| x as u64).type_id(),
+        x.fmap( |x| x as u64).type_id(),
         TypeId::of::<EnumMixed<u64>>()
     );
 }

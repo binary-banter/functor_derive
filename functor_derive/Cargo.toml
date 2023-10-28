@@ -12,5 +12,5 @@ proc-macro = true
 [dependencies]
 quote = "1.0.33"
 proc-macro2 = "1.0.67"
-syn = { version = "2.0.33", features = ["full", "extra-traits"] }
+syn = { version = "2.0.33", features = ["full"] }
 functor_derive_lib = { path = "../functor_derive_lib" }
