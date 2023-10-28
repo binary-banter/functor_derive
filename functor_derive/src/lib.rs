@@ -2,7 +2,10 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, PathArguments, Type, TypeParam, Index};
+use syn::{
+    parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, Index,
+    PathArguments, Type, TypeParam,
+};
 
 /// Example of user-defined [functor_derive mode macro][1]
 ///
@@ -91,19 +94,31 @@ fn generate_map_from_type(
             });
             quote!((#(#positions)*))
         }
-        Type::Array(_) => todo!(),
-        Type::BareFn(_) => todo!(),
-        Type::Group(_) => todo!(),
-        Type::ImplTrait(_) => todo!(),
-        Type::Infer(_) => todo!(),
-        Type::Macro(_) => todo!(),
-        Type::Never(_) => todo!(),
-        Type::Paren(_) => todo!(),
-        Type::Ptr(_) => todo!(),
-        Type::Reference(_) => todo!(),
-        Type::Slice(_) => todo!(),
-        Type::TraitObject(_) => todo!(),
-        Type::Verbatim(_) => todo!(),
+        Type::Array(array) => {
+            if type_contains_param(typ, param) {
+                let map = generate_map_from_type(&array.elem, param, &quote!(__v));
+                quote!(#field.map(|__v| #map))
+            } else {
+                quote!(#field)
+            }
+        }
+        Type::Paren(p) => generate_map_from_type(&p.elem, param, field),
+
+        // We cannot possibly map these, but passing them through is fine.
+        Type::BareFn(_)
+        | Type::Reference(_)
+        | Type::Ptr(_)
+        | Type::Slice(_)
+        | Type::Never(_)
+        | Type::Macro(_)
+        | Type::Infer(_)
+        | Type::ImplTrait(_)
+        | Type::TraitObject(_)
+        | Type::Verbatim(_)
+        | Type::Group(_) => {
+            quote!(#field)
+        }
+
         _ => panic!("Found unknown type"),
     }
 }
@@ -128,20 +143,25 @@ fn type_contains_param(typ: &Type, param: &TypeParam) -> bool {
                 }
             })
         }
-        Type::Array(_) => todo!(),
-        Type::BareFn(_) => todo!(),
-        Type::Group(_) => todo!(),
-        Type::ImplTrait(_) => todo!(),
-        Type::Infer(_) => todo!(),
-        Type::Macro(_) => todo!(),
-        Type::Never(_) => todo!(),
-        Type::Paren(_) => todo!(),
-        Type::Ptr(_) => todo!(),
-        Type::Reference(_) => todo!(),
-        Type::Slice(_) => todo!(),
-        Type::TraitObject(_) => todo!(),
-        Type::Tuple(_) => todo!(),
-        Type::Verbatim(_) => todo!(),
+        Type::Array(array) => type_contains_param(&array.elem, param),
+        Type::Tuple(tuple) => tuple.elems.iter().any(|t| type_contains_param(t, param)),
+
+        Type::Paren(p) => type_contains_param(&p.elem, param),
+
+        Type::BareFn(_)
+        | Type::Reference(_)
+        | Type::Ptr(_)
+        | Type::Slice(_)
+        | Type::Never(_)
+        | Type::Macro(_)
+        | Type::Infer(_)
+        | Type::ImplTrait(_)
+        | Type::TraitObject(_)
+        | Type::Verbatim(_)
+        | Type::Group(_) => {
+            false
+        }
+
         _ => panic!("Found unknown type"),
     }
 }

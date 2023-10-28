@@ -1,3 +1,5 @@
+#![allow(unused_parens)]
+
 use functor_derive::Functor;
 use functor_derive_lib::Functor;
 use std::any::{Any, TypeId};
@@ -140,8 +142,8 @@ fn struct_phantomdata() {
 }
 
 #[test]
-fn struct_hashmap(){
-    #[derive(Debug, Functor)]
+fn struct_hashmap() {
+    #[derive(Functor)]
     struct StructHashMap<A> {
         field_1: A,
         field_2: HashMap<u8, A>,
@@ -152,5 +154,84 @@ fn struct_hashmap(){
         field_2: HashMap::from([(13, 255)]),
     };
 
-    assert_eq!(x.fmap(&mut |x| x as u64).type_id(), TypeId::of::<StructHashMap<u64>>());
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructHashMap<u64>>()
+    );
+}
+
+#[test]
+fn struct_array_1() {
+    #[derive(Functor)]
+    struct StructArray<A> {
+        field_1: [A; 3],
+        field_2: u8,
+    }
+
+    let x = StructArray::<usize> {
+        field_1: [1, 2, 3],
+        field_2: 42,
+    };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructArray<u64>>()
+    );
+}
+
+#[test]
+fn struct_array_2() {
+    #[derive(Functor)]
+    struct StructArray<A> {
+        field_1: [(Vec<A>, usize); 3],
+        field_2: u8,
+    }
+
+    let x = StructArray::<usize> {
+        field_1: [(vec![1], 1), (vec![2], 2), (vec![3], 3)],
+        field_2: 42,
+    };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructArray<u64>>()
+    );
+}
+
+#[test]
+fn struct_paren_1() {
+    #[derive(Functor)]
+    struct StructArray<A> {
+        field_1: (A),
+        field_2: u8,
+    }
+
+    let x = StructArray::<usize> {
+        field_1: 1,
+        field_2: 42,
+    };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructArray<u64>>()
+    );
+}
+
+#[test]
+fn struct_paren_2() {
+    #[derive(Functor)]
+    struct StructArray<A> {
+        field_1: Vec<(A)>,
+        field_2: u8,
+    }
+
+    let x = StructArray::<usize> {
+        field_1: vec![1],
+        field_2: 42,
+    };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructArray<u64>>()
+    );
 }
