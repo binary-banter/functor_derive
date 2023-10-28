@@ -1,11 +1,12 @@
 use functor_derive::Functor;
 use functor_derive_lib::Functor;
 use std::any::{Any, TypeId};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
+use std::marker::PhantomData;
 
 #[test]
 fn struct_simple() {
-    #[derive(Debug, Functor)]
+    #[derive(Functor)]
     struct StructSimple<A> {
         field_1: A,
         field_2: u32,
@@ -24,7 +25,7 @@ fn struct_simple() {
 
 #[test]
 fn struct_option() {
-    #[derive(Debug, Functor)]
+    #[derive(Functor)]
     struct StructOption<A> {
         field_1: Option<A>,
         field_2: Option<A>,
@@ -45,7 +46,7 @@ fn struct_option() {
 
 #[test]
 fn struct_vec() {
-    #[derive(Debug, Functor)]
+    #[derive(Functor)]
     struct StructVec<A> {
         field_1: A,
         field_2: Vec<A>,
@@ -64,7 +65,7 @@ fn struct_vec() {
 
 #[test]
 fn struct_vecdeque() {
-    #[derive(Debug, Functor)]
+    #[derive(Functor)]
     struct StructVecDeque<A> {
         field_1: A,
         field_2: VecDeque<A>,
@@ -82,8 +83,8 @@ fn struct_vecdeque() {
 }
 
 #[test]
-fn struct_tuple() {
-    #[derive(Debug, Functor)]
+fn struct_tuple_1() {
+    #[derive(Functor)]
     struct StructTuple<A> {
         field_1: (A, u8, A),
         field_2: u32,
@@ -100,18 +101,56 @@ fn struct_tuple() {
     );
 }
 
-// #[test]
-// fn struct_hashmap(){
-//     #[derive(Debug, Functor)]
-//     struct StructHashMap<A> {
-//         field_1: A,
-//         field_2: HashMap<A, u8>,
-//     }
-//
-//     let x = StructHashMap::<usize> {
-//         field_1: 42,
-//         field_2: HashMap::from([(13, 255)]),
-//     };
-//
-//     assert_eq!(x.fmap(&mut |x| x as u64).type_id(), TypeId::of::<StructHashMap<u64>>());
-// }
+#[test]
+fn struct_tuple_2() {
+    #[derive(Functor)]
+    struct StructTuple<A> {
+        field_1: (Vec<A>, u8, A),
+        field_2: u32,
+    }
+
+    let x = StructTuple::<usize> {
+        field_1: (vec![3], 5, 8),
+        field_2: 13,
+    };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructTuple<u64>>()
+    );
+}
+
+#[test]
+fn struct_phantomdata() {
+    #[derive(Functor)]
+    struct StructPhantomData<A> {
+        field_1: PhantomData<A>,
+        field_2: u32,
+    }
+
+    let x = StructPhantomData::<usize> {
+        field_1: PhantomData::default(),
+        field_2: 13,
+    };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<StructPhantomData<u64>>()
+    );
+}
+
+#[test]
+fn struct_hashmap(){
+    #[derive(Debug, Functor)]
+    struct StructHashMap<A> {
+        field_1: A,
+        field_2: HashMap<u8, A>,
+    }
+
+    let x = StructHashMap::<usize> {
+        field_1: 42,
+        field_2: HashMap::from([(13, 255)]),
+    };
+
+    assert_eq!(x.fmap(&mut |x| x as u64).type_id(), TypeId::of::<StructHashMap<u64>>());
+}

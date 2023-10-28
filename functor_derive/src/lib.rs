@@ -2,10 +2,7 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, PathArguments,
-    Type, TypeParam,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, PathArguments, Type, TypeParam, Index};
 
 /// Example of user-defined [functor_derive mode macro][1]
 ///
@@ -88,14 +85,10 @@ fn generate_map_from_type(
         }
         Type::Tuple(tuple) => {
             let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
-                if type_contains_param(x, param) {
-                    // todo: not correct
-                    quote!(__f(#field.#i),)
-                } else {
-                    quote!(#field.#i,)
-                }
+                let i = Index::from(i);
+                let field = generate_map_from_type(x, param, &quote!(#field.#i));
+                quote!(#field,)
             });
-
             quote!((#(#positions)*))
         }
         Type::Array(_) => todo!(),
