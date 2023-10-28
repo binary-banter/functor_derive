@@ -1,4 +1,5 @@
 #![allow(unused_parens)]
+#![allow(dead_code)]
 
 use functor_derive::Functor;
 use functor_derive_lib::Functor;
@@ -233,5 +234,56 @@ fn struct_paren_2() {
     assert_eq!(
         x.fmap(&mut |x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
+    );
+}
+
+#[test]
+fn enum_simple_tuple() {
+    #[derive(Functor)]
+    enum EnumTuple<A> {
+        Var1(A),
+        Var2(bool),
+        Var3,
+    }
+
+    let x = EnumTuple::<usize>::Var1(18);
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<EnumTuple<u64>>()
+    );
+}
+
+#[test]
+fn enum_simple_struct() {
+    #[derive(Functor)]
+    enum EnumStruct<A> {
+        Var1 { x: A },
+        Var2 { y: bool },
+        Var3,
+    }
+
+    let x = EnumStruct::<usize>::Var1 { x: 18 };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<EnumStruct<u64>>()
+    );
+}
+
+#[test]
+fn enum_simple_mixed() {
+    #[derive(Functor)]
+    enum EnumMixed<A> {
+        Var1 { x: A },
+        Var2(bool),
+        Var3,
+    }
+
+    let x = EnumMixed::<usize>::Var1 { x: 18 };
+
+    assert_eq!(
+        x.fmap(&mut |x| x as u64).type_id(),
+        TypeId::of::<EnumMixed<u64>>()
     );
 }
