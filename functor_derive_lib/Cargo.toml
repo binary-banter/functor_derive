@@ -5,7 +5,7 @@ authors = ["Jonathan Brouwer <jonathantbrouwer@gmail.com>", "Julia Dijkstra"]
 description = "The lib for a derive macro to derive a functor for a type."
 keywords = ["proc-macro", "derive", "functor"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+repository = "https://github.com/binary-banter/functor_derive"
 
 [dependencies]
