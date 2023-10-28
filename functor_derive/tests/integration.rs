@@ -286,3 +286,30 @@ fn enum_simple_mixed() {
         TypeId::of::<EnumMixed<u64>>()
     );
 }
+
+#[test]
+fn generic_overload() {
+    // please do not do this
+
+    #[derive(Functor)]
+    struct StructLifeTimes<'a, 'b, const N: usize, A, T> {
+        field_1: A,
+        field_2: &'a u32,
+        field_3: &'b bool,
+        field_4: T,
+        field_5: [A; N],
+    }
+
+    let x = StructLifeTimes::<2, usize, bool> {
+        field_1: 42,
+        field_2: &13,
+        field_3: &false,
+        field_4: true,
+        field_5: [1, 2],
+    };
+
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<StructLifeTimes<2, u64, bool>>()
+    );
+}

@@ -98,7 +98,7 @@ impl<A> Functor<A> for PhantomData<A> {
     type Target<T> = PhantomData<T>;
 
     fn fmap<B>(self, _f: impl Fn(A) -> B) -> Self::Target<B> {
-        PhantomData::default()
+        PhantomData
     }
 }
 
