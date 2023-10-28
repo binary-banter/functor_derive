@@ -132,7 +132,29 @@ fn generate_map_from_type(
                 if path.path.segments.len() == 1 && &path.path.segments[0].ident == param {
                     quote!(__f(#field))
                 } else {
-                    quote!(#field.fmap(&__f))
+                    let PathArguments::AngleBracketed(args) = &path.path.segments[0].arguments
+                    else {
+                        unreachable!()
+                    };
+                    let first_type_arg = args
+                        .args
+                        .iter()
+                        .filter_map(|arg| {
+                            if let GenericArgument::Type(typ) = arg {
+                                if type_contains_param(typ, param) {
+                                    Some(typ)
+                                }else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                        .next()
+                        .expect("Expected a type param");
+                    let map = generate_map_from_type(first_type_arg, param, &quote!(v));
+
+                    quote!(#field.fmap(|v| { #map }))
                 }
             } else {
                 quote!(#field)

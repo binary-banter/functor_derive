@@ -329,6 +329,28 @@ fn struct_simple_trait() {
     );
 }
 
+#[test]
+fn struct_indirect_generic() {
+    #[derive(Functor)]
+    struct StructSimple<A> {
+        field_1: Vec<Vec<A>>,
+    }
+
+    // impl<A> ::functor_derive::Functor<A> for StructSimple<A> {
+    //     type Target<__B> = StructSimple<__B>;
+    //     fn fmap<__B>(self, __f: impl Fn(A) -> __B) -> StructSimple<__B> { StructSimple { field_1: self.field_1.fmap(&__f) } }
+    // }
+
+    let x = StructSimple::<usize> {
+        field_1: vec![vec![18]],
+    };
+
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<StructSimple<u64>>()
+    );
+}
+
 // #[test]
 // fn struct_simple_explicit() {
 //     #[derive(Functor)]
