@@ -3,18 +3,31 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, GenericArgument, GenericParam, Index, PathArguments, Type, TypePath, Path, PathSegment, Expr, ExprPath};
+use syn::{
+    parse_macro_input, Data, DeriveInput, Expr, ExprPath, Fields, GenericArgument, GenericParam,
+    Index, Path, PathArguments, PathSegment, Type, TypePath,
+};
 
 #[proc_macro_derive(Functor)]
 pub fn derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
+    let def_name = input.ident;
     let params = input.generics.params.iter().cloned().collect::<Vec<_>>();
-    let first = params.iter().enumerate().find(|(_, param)| matches!(param, GenericParam::Type(_))).map(|(i, _)| i).expect("Expected type to have a generic parameter");
-    let GenericParam::Type(param) = &params[first] else { unreachable!() };
+    let first = params
+        .iter()
+        .enumerate()
+        .find(|(_, param)| matches!(param, GenericParam::Type(_)))
+        .map(|(i, _)| i)
+        .expect("Expected type to have a generic parameter");
+    let GenericParam::Type(type_param) = &params[first] else {
+        unreachable!()
+    };
+    let param_name = &type_param.ident;
 
-    let source_args = params.iter().map(|param| {
-        match param {
+    let source_args = params
+        .iter()
+        .map(|param| match param {
             GenericParam::Lifetime(l) => GenericArgument::Lifetime(l.lifetime.clone()),
             GenericParam::Type(t) => GenericArgument::Type(Type::Path(TypePath {
                 qself: None,
@@ -25,13 +38,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 qself: None,
                 path: Path::from(PathSegment::from(c.ident.clone())),
             })),
-        }
-    }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     let mut target_args = source_args.clone();
     target_args[first] = GenericArgument::Type(Type::Path(TypePath {
         qself: None,
-        path: Path::from(PathSegment::from(format_ident!("__T"))),
+        path: Path::from(PathSegment::from(format_ident!("__B"))),
     }));
 
     let tokens = match input.data {
@@ -40,17 +53,16 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 let fields = fields.named.iter().map(|field| {
                     let field_name = field.ident.as_ref().unwrap();
                     let field =
-                        generate_map_from_type(&field.ty, &param.ident, &quote!(self.#field_name));
+                        generate_map_from_type(&field.ty, &param_name, &quote!(self.#field_name));
                     quote!(#field_name: #field)
                 });
-                quote!(Self::Target{#(#fields),*})
+                quote!(#def_name{#(#fields),*})
             }
             Fields::Unnamed(s) => {
-                let fields =
-                    s.unnamed.iter().enumerate().map(|(i, field)| {
-                        generate_map_from_type(&field.ty, &param.ident, &quote!(self.#i))
-                    });
-                quote!(Self::Target(#(#fields),*))
+                let fields = s.unnamed.iter().enumerate().map(|(i, field)| {
+                    generate_map_from_type(&field.ty, &param_name, &quote!(self.#i))
+                });
+                quote!(#def_name(#(#fields),*))
             }
             Fields::Unit => unreachable!("Cannot derive `Functor` for Unit Structs."),
         },
@@ -62,12 +74,12 @@ pub fn derive(input: TokenStream) -> TokenStream {
                         let names = fields.named.iter().map(|field| field.ident.as_ref().unwrap());
                         let fields = fields.named.iter().map(|field| {
                             let field_name = field.ident.as_ref().unwrap();
-                            let field = generate_map_from_type(&field.ty, &param.ident, &quote!(#field_name));
+                            let field = generate_map_from_type(&field.ty, &param_name, &quote!(#field_name));
                             quote!(#field_name: #field)
                         });
 
                         quote!(Self::#variant_name { #(#names),* } => {
-                            Self::Target::#variant_name {
+                            #def_name::#variant_name {
                                 #(#fields),*
                             }
                         })
@@ -75,11 +87,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     Fields::Unnamed(fields) => {
                         let names = (0..).map(|i| format_ident!("v{i}")).take(fields.unnamed.len());
                         let fields = fields.unnamed.iter().zip(names.clone()).map(|(field, i)|  {
-                            generate_map_from_type(&field.ty, &param.ident, &quote!(#i))
+                            generate_map_from_type(&field.ty, &param_name, &quote!(#i))
                         });
-                        quote!(Self::#variant_name(#(#names),*) => Self::Target::#variant_name(#(#fields),*))
+                        quote!(Self::#variant_name(#(#names),*) => #def_name::#variant_name(#(#fields),*))
                     }
-                    Fields::Unit => quote!(Self::#variant_name => Self::Target::#variant_name)
+                    Fields::Unit => quote!(Self::#variant_name => #def_name::#variant_name)
                 }
             });
             quote!(match self {#(#variants),*})
@@ -87,18 +99,26 @@ pub fn derive(input: TokenStream) -> TokenStream {
         Data::Union(_) => panic!("Deriving Functor on unions is unsupported."),
     };
 
-    let def_name = input.ident;
+    if type_param.bounds.is_empty() {
+        quote!(
+            impl<#(#params),*> ::functor_derive::Functor<#param_name> for #def_name<#(#source_args),*> {
+                type Target<__B> = #def_name<#(#target_args),*>;
 
-    quote!(
-        impl<#(#params),*> ::functor_derive::Functor<#param> for #def_name<#(#source_args),*> {
-            type Target<__T> = #def_name<#(#target_args),*>;
-
-            fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> Self::Target<__B> {
-                #tokens
+                fn fmap<__B>(self, __f: impl Fn(#param_name) -> __B) -> #def_name<#(#target_args),*> {
+                    #tokens
+                }
             }
-        }
-    )
-    .into()
+        )
+    } else {
+        let bounds = &type_param.bounds;
+        quote!(
+            impl<#(#params),*> #def_name<#(#source_args),*> {
+                fn fmap<__B: #bounds>(self, __f: impl Fn(#param_name) -> __B) -> #def_name<#(#target_args),*> {
+                    #tokens
+                }
+            }
+        )
+    }.into()
 }
 
 fn generate_map_from_type(
@@ -162,7 +182,9 @@ fn type_contains_param(typ: &Type, param: &Ident) -> bool {
                 return true;
             }
 
-            let PathArguments::AngleBracketed(bs) = &path.path.segments[path.path.segments.len() - 1].arguments else {
+            let PathArguments::AngleBracketed(bs) =
+                &path.path.segments[path.path.segments.len() - 1].arguments
+            else {
                 return false;
             };
 

@@ -86,6 +86,16 @@ impl<A> Functor<A> for VecDeque<A> {
     }
 }
 
+// fn key_map_hashmap<K: Eq + Hash, A, B: Eq + Hash>(hm: HashMap<K, A>, f: impl Fn(K) -> B) -> HashMap<B, A> {
+//     hm.into_iter().map(|(k, v)| (f(k), v)).collect()
+// }
+
+// impl<K: Eq + Hash, A> HashMap<K, A> {
+//     pub fn fmap_key<B>(self, f: impl Fn(A) -> B) -> HashMap<B, A> {
+//         self.into_iter().map(|(k, v)| (f(k), v)).collect()
+//     }
+// }
+
 impl<K: Eq + Hash, A> Functor<A> for HashMap<K, A> {
     type Target<T> = HashMap<K, T>;
 

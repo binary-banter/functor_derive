@@ -4,6 +4,8 @@
 use functor_derive::Functor;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, VecDeque};
+use std::fmt::Display;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 #[test]
@@ -60,7 +62,7 @@ fn struct_vec() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructVec<u64>>()
     );
 }
@@ -98,7 +100,7 @@ fn struct_tuple_1() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructTuple<u64>>()
     );
 }
@@ -117,7 +119,7 @@ fn struct_tuple_2() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructTuple<u64>>()
     );
 }
@@ -136,7 +138,7 @@ fn struct_phantomdata() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructPhantomData<u64>>()
     );
 }
@@ -155,7 +157,7 @@ fn struct_hashmap() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructHashMap<u64>>()
     );
 }
@@ -174,7 +176,7 @@ fn struct_array_1() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -193,7 +195,7 @@ fn struct_array_2() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -212,7 +214,7 @@ fn struct_paren_1() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -231,7 +233,7 @@ fn struct_paren_2() {
     };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<StructArray<u64>>()
     );
 }
@@ -248,7 +250,7 @@ fn enum_simple_tuple() {
     let x = EnumTuple::<usize>::Var1(18);
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<EnumTuple<u64>>()
     );
 }
@@ -265,7 +267,7 @@ fn enum_simple_struct() {
     let x = EnumStruct::<usize>::Var1 { x: 18 };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<EnumStruct<u64>>()
     );
 }
@@ -282,15 +284,13 @@ fn enum_simple_mixed() {
     let x = EnumMixed::<usize>::Var1 { x: 18 };
 
     assert_eq!(
-        x.fmap( |x| x as u64).type_id(),
+        x.fmap(|x| x as u64).type_id(),
         TypeId::of::<EnumMixed<u64>>()
     );
 }
 
 #[test]
 fn generic_overload() {
-    // please do not do this
-
     #[derive(Functor)]
     struct StructLifeTimes<'a, 'b, const N: usize, A, T> {
         field_1: A,
@@ -313,3 +313,65 @@ fn generic_overload() {
         TypeId::of::<StructLifeTimes<2, u64, bool>>()
     );
 }
+
+#[test]
+fn struct_simple_trait() {
+    #[derive(Functor)]
+    struct StructSimple<A: Display> {
+        field_1: A,
+    }
+
+    let x = StructSimple::<usize> { field_1: 42 };
+
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<StructSimple<u64>>()
+    );
+}
+
+// #[test]
+// fn struct_simple_explicit() {
+//     #[derive(Functor)]
+//     #[functor(B)]
+//     struct StructSimple<A, B> {
+//         field_1: A,
+//         field_2: B,
+//     }
+//
+//     let x = StructSimple::<usize, usize> {
+//         field_1: 42,
+//         field_2: 13,
+//     };
+//
+//     assert_eq!(
+//         x.fmap(|x| x as u64).type_id(),
+//         TypeId::of::<StructSimple<usize, u64>>()
+//     );
+// }
+
+// #[test]
+// fn hashmap_key() {
+//     // #[derive(Functor)]
+//     struct StructMap<A: Hash + Eq> {
+//         // #[functor_map(fmap_key)]
+//         field_1: HashMap<A, usize>
+//     }
+//
+//     // impl<A: Hash + Eq> ::functor_derive::Functor<A> for StructMap<A> {
+//     //     type Target<__T> = StructMap<__T>;
+//     //     fn fmap<__B>(self, __f: impl Fn(A) -> __B) -> Self::Target<__B> { Self::Target { field_1: self.field_1.fmap(&__f) } }
+//     // }
+//
+//     impl<A: Hash + Eq> StructMap<A> {
+//         fn fmap<__B: Hash + Eq>(self, __f: impl Fn(A) -> __B) -> StructMap<__B> { StructMap { field_1: self.field_1.fmap_key(&__f) } }
+//     }
+//
+//     let x = StructMap::<usize> {
+//         field_1: HashMap::from([(1, 3), (2, 4)])
+//     };
+//
+//     assert_eq!(
+//         x.fmap(|x| x as u64).type_id(),
+//         TypeId::of::<StructMap<u64>>()
+//     );
+// }
