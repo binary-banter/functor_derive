@@ -113,7 +113,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let bounds = &type_param.bounds;
         quote!(
             impl<#(#params),*> #def_name<#(#source_args),*> {
-                fn fmap<__B: #bounds>(self, __f: impl Fn(#param_name) -> __B) -> #def_name<#(#target_args),*> {
+                pub fn fmap<__B: #bounds>(self, __f: impl Fn(#param_name) -> __B) -> #def_name<#(#target_args),*> {
                     #tokens
                 }
             }
