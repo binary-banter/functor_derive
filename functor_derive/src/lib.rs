@@ -99,10 +99,8 @@ fn generate_map_from_type(
 ) -> proc_macro2::TokenStream {
     match typ {
         typ @ Type::Path(path) => {
-            let segments: Vec<_> = path.path.segments.iter().collect();
-
             if type_contains_param(typ, param) {
-                if segments.len() == 1 && segments[0].ident == param.ident {
+                if path.path.segments.len() == 1 && path.path.segments[0].ident == param.ident {
                     quote!(__f(#field))
                 } else {
                     quote!(#field.fmap(&__f))
@@ -151,12 +149,11 @@ fn generate_map_from_type(
 fn type_contains_param(typ: &Type, param: &TypeParam) -> bool {
     match typ {
         Type::Path(path) => {
-            let segments: Vec<_> = path.path.segments.iter().collect();
-            if segments.len() == 1 && segments[0].ident == param.ident {
+            if path.path.segments.len() == 1 && path.path.segments[0].ident == param.ident {
                 return true;
             }
 
-            let PathArguments::AngleBracketed(bs) = &segments.last().unwrap().arguments else {
+            let PathArguments::AngleBracketed(bs) = &path.path.segments[path.path.segments.len() - 1].arguments else {
                 return false;
             };
 
