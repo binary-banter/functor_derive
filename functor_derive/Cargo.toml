@@ -1,6 +1,6 @@
 [package]
 name = "functor_derive"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Jonathan Brouwer <jonathantbrouwer@gmail.com>", "Julia Dijkstra"]
 description = "A derive macro to derive a functor for a type."
 keywords = ["proc-macro", "derive", "functor"]
@@ -9,4 +9,4 @@ license = "MIT"
 repository = "https://github.com/binary-banter/functor_derive"
 
 [dependencies]
-functor_derive_lib = { path = "../functor_derive_lib" }
+functor_derive_lib = { version = "0.2.2" }

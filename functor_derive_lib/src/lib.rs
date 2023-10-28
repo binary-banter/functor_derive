@@ -53,14 +53,14 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 let fields = fields.named.iter().map(|field| {
                     let field_name = field.ident.as_ref().unwrap();
                     let field =
-                        generate_map_from_type(&field.ty, &param_name, &quote!(self.#field_name));
+                        generate_map_from_type(&field.ty, param_name, &quote!(self.#field_name));
                     quote!(#field_name: #field)
                 });
                 quote!(#def_name{#(#fields),*})
             }
             Fields::Unnamed(s) => {
                 let fields = s.unnamed.iter().enumerate().map(|(i, field)| {
-                    generate_map_from_type(&field.ty, &param_name, &quote!(self.#i))
+                    generate_map_from_type(&field.ty, param_name, &quote!(self.#i))
                 });
                 quote!(#def_name(#(#fields),*))
             }
@@ -74,7 +74,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
                         let names = fields.named.iter().map(|field| field.ident.as_ref().unwrap());
                         let fields = fields.named.iter().map(|field| {
                             let field_name = field.ident.as_ref().unwrap();
-                            let field = generate_map_from_type(&field.ty, &param_name, &quote!(#field_name));
+                            let field = generate_map_from_type(&field.ty, param_name, &quote!(#field_name));
                             quote!(#field_name: #field)
                         });
 
@@ -87,7 +87,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     Fields::Unnamed(fields) => {
                         let names = (0..).map(|i| format_ident!("v{i}")).take(fields.unnamed.len());
                         let fields = fields.unnamed.iter().zip(names.clone()).map(|(field, i)|  {
-                            generate_map_from_type(&field.ty, &param_name, &quote!(#i))
+                            generate_map_from_type(&field.ty, param_name, &quote!(#i))
                         });
                         quote!(Self::#variant_name(#(#names),*) => #def_name::#variant_name(#(#fields),*))
                     }
@@ -141,16 +141,12 @@ fn generate_map_from_type(
                         .iter()
                         .filter_map(|arg| {
                             if let GenericArgument::Type(typ) = arg {
-                                if type_contains_param(typ, param) {
-                                    Some(typ)
-                                }else {
-                                    None
-                                }
+                                Some(typ)
                             } else {
                                 None
                             }
                         })
-                        .next()
+                        .find(|typ| type_contains_param(typ, param))
                         .expect("Expected a type param");
                     let map = generate_map_from_type(first_type_arg, param, &quote!(v));
 
