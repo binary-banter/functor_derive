@@ -351,9 +351,9 @@ fn struct_simple_trait() {
 
 // #[test]
 // fn hashmap_key() {
-//     // #[derive(Functor)]
+//     #[derive(Functor)]
 //     struct StructMap<A: Hash + Eq> {
-//         // #[functor_map(fmap_key)]
+//         #[functor_map(fmap_key)]
 //         field_1: HashMap<A, usize>
 //     }
 //
@@ -362,13 +362,13 @@ fn struct_simple_trait() {
 //     //     fn fmap<__B>(self, __f: impl Fn(A) -> __B) -> Self::Target<__B> { Self::Target { field_1: self.field_1.fmap(&__f) } }
 //     // }
 //
-//     impl<A: Hash + Eq> StructMap<A> {
-//         fn fmap<__B: Hash + Eq>(self, __f: impl Fn(A) -> __B) -> StructMap<__B> { StructMap { field_1: self.field_1.fmap_key(&__f) } }
-//     }
-//
-//     let x = StructMap::<usize> {
-//         field_1: HashMap::from([(1, 3), (2, 4)])
-//     };
+//     // impl<A: Hash + Eq> StructMap<A> {
+//     //     fn fmap<__B: Hash + Eq>(self, __f: impl Fn(A) -> __B) -> StructMap<__B> { StructMap { field_1: self.field_1.fmap_key(&__f) } }
+//     // }
+//     //
+//     // let x = StructMap::<usize> {
+//     //     field_1: HashMap::from([(1, 3), (2, 4)])
+//     // };
 //
 //     assert_eq!(
 //         x.fmap(|x| x as u64).type_id(),
