@@ -78,6 +78,14 @@ impl<A> Functor<A> for Vec<A> {
     }
 }
 
+impl<A> Functor<A> for Box<A> {
+    type Target<T> = Box<T>;
+
+    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        Box::new(f(*self))
+    }
+}
+
 impl<A> Functor<A> for VecDeque<A> {
     type Target<T> = VecDeque<T>;
 
