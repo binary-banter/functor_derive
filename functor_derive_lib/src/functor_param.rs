@@ -11,31 +11,28 @@ pub fn functor_param_from_attrs(input: &DeriveInput) -> Option<Ident> {
 
     // Find upto one `functor` attribute.
     for attribute in &input.attrs {
-        match &attribute.meta {
-            Meta::List(list) => {
-                // If there is more than one segment, it cannot be `functor`.
-                if list.path.segments.len() > 1 {
-                    continue;
-                }
-                let Some(segment) = list.path.segments.first() else {
-                    continue;
-                };
-                if segment.ident != format_ident!("functor") {
-                    continue;
-                }
-                // We already found a `functor` attribute!
-                if let Some((functor_param, span)) = functor_param {
-                    abort!(
-                        span,
-                        "Already found a previous attribute with parameter `{}`",
-                        functor_param
-                    )
-                }
-                let span = list.tokens.span();
-                let param = parse::<Ident>(list.tokens.clone().into()).unwrap();
-                functor_param = Some((param, span));
+        if let Meta::List(list) = &attribute.meta {
+            // If there is more than one segment, it cannot be `functor`.
+            if list.path.segments.len() > 1 {
+                continue;
             }
-            _ => {}
+            let Some(segment) = list.path.segments.first() else {
+                continue;
+            };
+            if segment.ident != format_ident!("functor") {
+                continue;
+            }
+            // We already found a `functor` attribute!
+            if let Some((functor_param, span)) = functor_param {
+                abort!(
+                    span,
+                    "Already found a previous attribute with parameter `{}`",
+                    functor_param
+                )
+            }
+            let span = list.tokens.span();
+            let param = parse::<Ident>(list.tokens.clone().into()).unwrap();
+            functor_param = Some((param, span));
         }
     }
 

@@ -335,10 +335,7 @@ fn mutual_recursive() {
         v: 42usize,
     };
 
-    assert_eq!(
-        x.fmap(|x| x as u64).type_id(),
-        TypeId::of::<TypeA<u64>>()
-    );
+    assert_eq!(x.fmap(|x| x as u64).type_id(), TypeId::of::<TypeA<u64>>());
 }
 
 #[test]
@@ -360,10 +357,7 @@ fn recursive() {
         v: 42usize,
     };
 
-    assert_eq!(
-        x.fmap(|x| x as u64).type_id(),
-        TypeId::of::<TypeA<u64>>()
-    );
+    assert_eq!(x.fmap(|x| x as u64).type_id(), TypeId::of::<TypeA<u64>>());
 }
 
 #[test]
