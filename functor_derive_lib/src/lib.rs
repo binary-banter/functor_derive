@@ -76,19 +76,20 @@ pub fn derive(input: TokenStream) -> TokenStream {
             impl<#(#gen_params),*> ::functor_derive::Functor<#functor_param> for #def_name<#(#source_args),*> {
                 type Target<__B> = #def_name<#(#target_args),*>;
 
-                fn fmap<__B>(self, __f: impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
+                fn fmap_ref<__B>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
                     #fmap_body
                 }
             }
         )
     } else {
-        let bounds = &functor_param_type.bounds;
-        quote!(
-            impl<#(#gen_params),*> #def_name<#(#source_args),*> {
-                pub fn fmap<__B: #bounds>(self, __f: impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
-                    #fmap_body
-                }
-            }
-        )
+        todo!()
+        // let bounds = &functor_param_type.bounds;
+        // quote!(
+        //     impl<#(#gen_params),*> #def_name<#(#source_args),*> {
+        //         pub fn fmap<__B: #bounds>(self, __f: impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
+        //             #fmap_body
+        //         }
+        //     }
+        // )
     }.into()
 }

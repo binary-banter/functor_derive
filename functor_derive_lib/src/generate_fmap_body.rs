@@ -1,3 +1,4 @@
+use crate::generate_map::generate_map_from_type;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::abort_call_site;
 use quote::{format_ident, quote};
@@ -26,11 +27,8 @@ fn generate_fmap_body_enum(
                     .map(|field| field.ident.as_ref().unwrap());
                 let fields = fields.named.iter().map(|field| {
                     let field_name = field.ident.as_ref().unwrap();
-                    let field = crate::generate_map::generate_map_from_type(
-                        &field.ty,
-                        &functor_param,
-                        &quote!(#field_name),
-                    );
+                    let field =
+                        generate_map_from_type(&field.ty, &functor_param, &quote!(#field_name)).0;
                     quote!(#field_name: #field)
                 });
 
@@ -45,11 +43,7 @@ fn generate_fmap_body_enum(
                     .map(|i| format_ident!("v{i}"))
                     .take(fields.unnamed.len());
                 let fields = fields.unnamed.iter().zip(names.clone()).map(|(field, i)| {
-                    crate::generate_map::generate_map_from_type(
-                        &field.ty,
-                        &functor_param,
-                        &quote!(#i),
-                    )
+                    generate_map_from_type(&field.ty, &functor_param, &quote!(#i)).0
                 });
                 quote!(Self::#variant_name(#(#names),*) => #def_name::#variant_name(#(#fields),*))
             }
@@ -68,25 +62,18 @@ fn generate_fmap_body_struct(
         Fields::Named(fields) => {
             let fields = fields.named.iter().map(|field| {
                 let field_name = field.ident.as_ref().unwrap();
-                let field = crate::generate_map::generate_map_from_type(
-                    &field.ty,
-                    &functor_param,
-                    &quote!(self.#field_name),
-                );
+                let field =
+                    generate_map_from_type(&field.ty, &functor_param, &quote!(self.#field_name)).0;
                 quote!(#field_name: #field)
             });
             quote!(#def_name{#(#fields),*})
         }
         Fields::Unnamed(s) => {
             let fields = s.unnamed.iter().enumerate().map(|(i, field)| {
-                crate::generate_map::generate_map_from_type(
-                    &field.ty,
-                    &functor_param,
-                    &quote!(self.#i),
-                )
+                generate_map_from_type(&field.ty, &functor_param, &quote!(self.#i)).0
             });
             quote!(#def_name(#(#fields),*))
         }
-        Fields::Unit => unreachable!("Cannot derive `Functor` for Unit Structs."),
+        Fields::Unit => abort_call_site!("Cannot derive `Functor` for Unit Structs."),
     }
 }

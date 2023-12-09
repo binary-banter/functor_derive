@@ -7,12 +7,12 @@ pub fn generate_map_from_type(
     typ: &Type,
     param: &Ident,
     field: &proc_macro2::TokenStream,
-) -> proc_macro2::TokenStream {
-    match typ {
+) -> (proc_macro2::TokenStream, bool) {
+    (match typ {
         typ @ Type::Path(path) => {
             if type_contains_param(typ, param) {
                 if path.path.segments.len() == 1 && &path.path.segments[0].ident == param {
-                    quote!(__f(#field))
+                    return (quote!(__f(#field)), true)
                 } else {
                     let PathArguments::AngleBracketed(args) = &path.path.segments[0].arguments
                     else {
@@ -30,9 +30,13 @@ pub fn generate_map_from_type(
                         })
                         .find(|typ| type_contains_param(typ, param))
                         .expect("Expected a type param");
-                    let map = generate_map_from_type(first_type_arg, param, &quote!(v));
+                    let (map, is_end) = generate_map_from_type(first_type_arg, param, &quote!(v));
 
-                    quote!(#field.fmap(|v| { #map }))
+                    if is_end {
+                        quote!(#field.fmap_ref(__f))
+                    } else {
+                        quote!(#field.fmap_ref(&|v| { #map }))
+                    }
                 }
             } else {
                 quote!(#field)
@@ -41,20 +45,20 @@ pub fn generate_map_from_type(
         Type::Tuple(tuple) => {
             let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
                 let i = Index::from(i);
-                let field = generate_map_from_type(x, param, &quote!(#field.#i));
+                let field = generate_map_from_type(x, param, &quote!(#field.#i)).0;
                 quote!(#field,)
             });
             quote!((#(#positions)*))
         }
         Type::Array(array) => {
             if type_contains_param(typ, param) {
-                let map = generate_map_from_type(&array.elem, param, &quote!(__v));
+                let map = generate_map_from_type(&array.elem, param, &quote!(__v)).0;
                 quote!(#field.map(|__v| #map))
             } else {
                 quote!(#field)
             }
         }
-        Type::Paren(p) => generate_map_from_type(&p.elem, param, field),
+        Type::Paren(p) => generate_map_from_type(&p.elem, param, field).0,
         // We cannot possibly map these, but passing them through is fine.
         Type::BareFn(_)
         | Type::Reference(_)
@@ -70,7 +74,7 @@ pub fn generate_map_from_type(
             quote!(#field)
         }
         _ => panic!("Found unknown type"),
-    }
+    }, false)
 }
 
 fn type_contains_param(typ: &Type, param: &Ident) -> bool {

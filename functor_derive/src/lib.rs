@@ -22,7 +22,7 @@ pub use functor_derive_lib::*;
 /// impl<T> Functor<T> for MyType<T> {
 ///     type Target<U> = MyType<U>;
 ///
-///     fn fmap<B>(self, f: impl Fn(T) -> B) -> Self::Target<B> {
+///     fn fmap_ref<B>(self, f: &impl Fn(T) -> B) -> Self::Target<B> {
 ///         MyType {
 ///             value: f(self.value),
 ///             unaffected: self.unaffected,
@@ -48,16 +48,20 @@ pub use functor_derive_lib::*;
 /// let transformed = original.fmap(|x| x * 2);
 /// assert_eq!(transformed.value, 84);
 /// ```
-pub trait Functor<A> {
+pub trait Functor<A>: Sized {
     type Target<T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B>;
+    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        self.fmap_ref(&f)
+    }
+
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
 }
 
 impl<A> Functor<A> for Option<A> {
     type Target<T> = Option<T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.map(f)
     }
 }
@@ -65,7 +69,7 @@ impl<A> Functor<A> for Option<A> {
 impl<A, E> Functor<A> for Result<A, E> {
     type Target<T> = Result<T, E>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.map(f)
     }
 }
@@ -73,7 +77,7 @@ impl<A, E> Functor<A> for Result<A, E> {
 impl<A> Functor<A> for Vec<A> {
     type Target<T> = Vec<T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.into_iter().map(f).collect()
     }
 }
@@ -81,7 +85,7 @@ impl<A> Functor<A> for Vec<A> {
 impl<A> Functor<A> for Box<A> {
     type Target<T> = Box<T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         Box::new(f(*self))
     }
 }
@@ -89,25 +93,15 @@ impl<A> Functor<A> for Box<A> {
 impl<A> Functor<A> for VecDeque<A> {
     type Target<T> = VecDeque<T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.into_iter().map(f).collect()
     }
 }
 
-// fn key_map_hashmap<K: Eq + Hash, A, B: Eq + Hash>(hm: HashMap<K, A>, f: impl Fn(K) -> B) -> HashMap<B, A> {
-//     hm.into_iter().map(|(k, v)| (f(k), v)).collect()
-// }
-
-// impl<K: Eq + Hash, A> HashMap<K, A> {
-//     pub fn fmap_key<B>(self, f: impl Fn(A) -> B) -> HashMap<B, A> {
-//         self.into_iter().map(|(k, v)| (f(k), v)).collect()
-//     }
-// }
-
 impl<K: Eq + Hash, A> Functor<A> for HashMap<K, A> {
     type Target<T> = HashMap<K, T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.into_iter().map(|(k, v)| (k, f(v))).collect()
     }
 }
@@ -115,7 +109,7 @@ impl<K: Eq + Hash, A> Functor<A> for HashMap<K, A> {
 impl<A> Functor<A> for PhantomData<A> {
     type Target<T> = PhantomData<T>;
 
-    fn fmap<B>(self, _f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, _f: &impl Fn(A) -> B) -> Self::Target<B> {
         PhantomData
     }
 }
@@ -123,7 +117,7 @@ impl<A> Functor<A> for PhantomData<A> {
 impl<const N: usize, A> Functor<A> for [A; N] {
     type Target<T> = [T; N];
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.map(f)
     }
 }
@@ -131,7 +125,7 @@ impl<const N: usize, A> Functor<A> for [A; N] {
 impl<K: Ord, A> Functor<A> for BTreeMap<K, A> {
     type Target<T> = BTreeMap<K, T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.into_iter().map(|(k, v)| (k, f(v))).collect()
     }
 }
@@ -139,7 +133,7 @@ impl<K: Ord, A> Functor<A> for BTreeMap<K, A> {
 impl<A> Functor<A> for LinkedList<A> {
     type Target<T> = LinkedList<T>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+    fn fmap_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.into_iter().map(f).collect()
     }
 }

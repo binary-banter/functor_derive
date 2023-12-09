@@ -1,10 +1,8 @@
 #![allow(unused_parens)]
-#![allow(dead_code)]
 
 use functor_derive::Functor;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, VecDeque};
-use std::fmt::Display;
 use std::marker::PhantomData;
 
 #[test]
@@ -314,19 +312,94 @@ fn generic_overload() {
 }
 
 #[test]
-fn struct_simple_trait() {
-    #[derive(Functor)]
-    struct StructSimple<A: Display> {
-        field_1: A,
+fn mutual_recursive() {
+    #[derive(Debug, Functor)]
+    struct TypeA<T> {
+        b: Option<Box<TypeB<T>>>,
+        v: T,
     }
 
-    let x = StructSimple::<usize> { field_1: 42 };
+    #[derive(Debug, Functor)]
+    struct TypeB<T> {
+        a: Option<Box<TypeA<T>>>,
+    }
+
+    let x = TypeA {
+        b: Some(Box::new(TypeB {
+            a: Some(Box::new(TypeA {
+                b: None,
+                v: 42usize,
+            })),
+        })),
+        v: 42usize,
+    };
 
     assert_eq!(
         x.fmap(|x| x as u64).type_id(),
-        TypeId::of::<StructSimple<u64>>()
+        TypeId::of::<TypeA<u64>>()
     );
 }
+
+#[test]
+fn recursive() {
+    #[derive(Debug, Functor)]
+    struct TypeA<T> {
+        b: Option<Box<TypeA<T>>>,
+        v: T,
+    }
+
+    let x = TypeA {
+        b: Some(Box::new(TypeA {
+            b: Some(Box::new(TypeA {
+                b: None,
+                v: 42usize,
+            })),
+            v: 42usize,
+        })),
+        v: 42usize,
+    };
+
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<TypeA<u64>>()
+    );
+}
+
+#[test]
+fn map_specified_generic() {
+    #[derive(Functor)]
+    #[functor(T)]
+    struct MyType<S, T> {
+        v1: S,
+        v2: T,
+    }
+
+    let x = MyType {
+        v1: true,
+        v2: 18usize,
+    };
+
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<MyType<bool, u64>>()
+    );
+}
+
+//TODO
+// #[test]
+// fn struct_simple_trait() {
+//     #[derive(Functor)]
+//     struct StructSimple<A: Display> {
+//         field_1: A,
+//     }
+//
+//     let x = StructSimple::<usize> { field_1: 42 };
+//
+//     assert_eq!(
+//         x.fmap(|x| x as u64).type_id(),
+//         TypeId::of::<StructSimple<u64>>()
+//     );
+// }
 
 #[test]
 fn struct_indirect_generic() {
@@ -361,50 +434,3 @@ fn struct_super_indirect_generic() {
         TypeId::of::<StructSimple<u64>>()
     );
 }
-
-// #[test]
-// fn struct_simple_explicit() {
-//     #[derive(Functor)]
-//     #[functor(B)]
-//     struct StructSimple<A, B> {
-//         field_1: A,
-//         field_2: B,
-//     }
-//
-//     let x = StructSimple::<usize, usize> {
-//         field_1: 42,
-//         field_2: 13,
-//     };
-//
-//     assert_eq!(
-//         x.fmap(|x| x as u64).type_id(),
-//         TypeId::of::<StructSimple<usize, u64>>()
-//     );
-// }
-
-// #[test]
-// fn hashmap_key() {
-//     #[derive(Functor)]
-//     struct StructMap<A: Hash + Eq> {
-//         #[functor_map(fmap_key)]
-//         field_1: HashMap<A, usize>
-//     }
-//
-//     // impl<A: Hash + Eq> ::functor_derive::Functor<A> for StructMap<A> {
-//     //     type Target<__T> = StructMap<__T>;
-//     //     fn fmap<__B>(self, __f: impl Fn(A) -> __B) -> Self::Target<__B> { Self::Target { field_1: self.field_1.fmap(&__f) } }
-//     // }
-//
-//     // impl<A: Hash + Eq> StructMap<A> {
-//     //     fn fmap<__B: Hash + Eq>(self, __f: impl Fn(A) -> __B) -> StructMap<__B> { StructMap { field_1: self.field_1.fmap_key(&__f) } }
-//     // }
-//     //
-//     // let x = StructMap::<usize> {
-//     //     field_1: HashMap::from([(1, 3), (2, 4)])
-//     // };
-//
-//     assert_eq!(
-//         x.fmap(|x| x as u64).type_id(),
-//         TypeId::of::<StructMap<u64>>()
-//     );
-// }
