@@ -92,7 +92,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         let bounds = &functor_param_type.bounds;
         quote!(
             impl<#(#gen_params),*> #def_name<#(#source_args),*> {
-                fn fmap<__B: #bounds>(self, __f: impl Fn(A) -> __B) -> #def_name<#(#target_args),*> {
+                pub fn fmap<__B: #bounds>(self, __f: impl Fn(A) -> __B) -> #def_name<#(#target_args),*> {
                     self.fmap_ref(&__f)
                 }
 
@@ -100,11 +100,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
                     #fmap_body
                 }
 
-                fn try_fmap<__B: #bounds, __E>(self, __f: impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                pub fn try_fmap<__B: #bounds, __E>(self, __f: impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
                     self.try_fmap_ref(&__f)
                 }
 
-                fn try_fmap_ref<__B: #bounds, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                pub fn try_fmap_ref<__B: #bounds, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
                     Ok(#try_fmap_body)
                 }
             }
