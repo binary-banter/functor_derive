@@ -161,7 +161,7 @@ impl<A> Functor<A> for PhantomData<A> {
         PhantomData
     }
 
-    fn try_fmap_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+    fn try_fmap_ref<B, E>(self, _f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
         Ok(PhantomData)
     }
 }

@@ -67,7 +67,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
     }));
 
     // Generate body of the `fmap` implementation.
-    let fmap_body = generate_fmap_body::generate_fmap_body(input.data, &def_name, &functor_param);
+    let fmap_body =
+        generate_fmap_body::generate_fmap_body(&input.data, &def_name, &functor_param, false);
+    let try_fmap_body =
+        generate_fmap_body::generate_fmap_body(&input.data, &def_name, &functor_param, true);
 
     // If there are no bounds on the generics, generate tokens for `Functor` trait impl for the given definition.
     // Otherwise, generate `fmap` impl for the given definition.
@@ -79,18 +82,30 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 fn fmap_ref<__B>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
                     #fmap_body
                 }
+
+                fn try_fmap_ref<__B, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                    Ok(#try_fmap_body)
+                }
             }
         )
     } else {
         let bounds = &functor_param_type.bounds;
         quote!(
             impl<#(#gen_params),*> #def_name<#(#source_args),*> {
-                fn fmap<__B: #bounds>(self, f: impl Fn(A) -> __B) -> #def_name<#(#target_args),*> {
-                    self.fmap_ref(&f)
+                fn fmap<__B: #bounds>(self, __f: impl Fn(A) -> __B) -> #def_name<#(#target_args),*> {
+                    self.fmap_ref(&__f)
                 }
 
                 pub fn fmap_ref<__B: #bounds>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
                     #fmap_body
+                }
+
+                fn try_fmap<__B: #bounds, __E>(self, __f: impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                    self.try_fmap_ref(&__f)
+                }
+
+                fn try_fmap_ref<__B: #bounds, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                    Ok(#try_fmap_body)
                 }
             }
         )

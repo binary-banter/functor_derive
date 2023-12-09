@@ -32,7 +32,7 @@ impl<T> MyType<T> {
 
     fn try_fmap_ref<B, E>(self, __f: &impl Fn(T) -> Result<B, E>) -> Result<MyType<B>, E> {
         Ok(MyType {
-            value: self.value.try_fmap_ref(&|v| v.try_fmap(__f))?,
+            value: self.value.try_fmap_ref(&|v| Ok(v.try_fmap_ref(__f)?))?,
             unaffected: self.unaffected,
         })
     }
