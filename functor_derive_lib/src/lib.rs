@@ -2,7 +2,7 @@
 use crate::generate_fmap_body::generate_fmap_body;
 use crate::parse_attribute::parse_attribute;
 use proc_macro2::{Ident, TokenStream};
-use proc_macro_error::{abort_call_site, proc_macro_error};
+use proc_macro_error::{proc_macro_error};
 use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
@@ -62,15 +62,13 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     tokens.into()
 }
 
-/// Index in Vec, Index in Type Params
-/// 'a, T, S -> (1, 0)
 fn find_index(source_params: &Vec<GenericParam>, ident: &Ident) -> (usize, usize) {
     let mut total = 0;
     let mut types = 0;
     for param in source_params {
         match param {
             GenericParam::Type(t) if &t.ident == ident => return (total, types),
-            GenericParam::Type(t) => types += 1,
+            GenericParam::Type(_) => types += 1,
             _ => {}
         };
         total += 1;
@@ -91,8 +89,8 @@ fn generate_refs_impl(
             let (param_idx_total, param_idx_types) = find_index(source_params, &t.ident);
 
             let functor_trait_ident = format_ident!("Functor{param_idx_types}");
-            let fmap_ident = format_ident!("fmap_{param_idx_types}_ref");
-            let try_fmap_ident = format_ident!("try_fmap_{param_idx_types}_ref");
+            let fmap_ident = format_ident!("__fmap_{param_idx_types}_ref");
+            let try_fmap_ident = format_ident!("__try_fmap_{param_idx_types}_ref");
 
             // Generate body of the `fmap` implementation.
             let fmap_ref_body = generate_fmap_body(&data, &def_name, &param_ident, false);
@@ -139,8 +137,8 @@ fn generate_default_impl(
         path: Path::from(PathSegment::from(format_ident!("__B"))),
     }));
 
-    let default_map = format_ident!("fmap_{default_idx_types}_ref");
-    let default_try_map = format_ident!("try_fmap_{default_idx_types}_ref");
+    let default_map = format_ident!("__fmap_{default_idx_types}_ref");
+    let default_try_map = format_ident!("__try_fmap_{default_idx_types}_ref");
 
     quote!(
         impl<#(#source_params),*> ::functor_derive::Functor<#default> for #def_name<#(#source_args),*> {

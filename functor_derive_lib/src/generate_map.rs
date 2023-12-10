@@ -39,14 +39,14 @@ pub fn generate_map_from_type(
                                 generate_map_from_type(type_arg, param, &quote!(v), is_try);
 
                             if is_try {
-                                let map_ident = format_ident!("try_fmap_{type_arg_idx}_ref");
+                                let map_ident = format_ident!("__try_fmap_{type_arg_idx}_ref");
                                 if is_end {
                                     tokens.extend(quote!(.#map_ident(__f)?))
                                 } else {
                                     tokens.extend(quote!(.#map_ident(&|v| { Ok(#map) })?))
                                 }
                             } else {
-                                let map_ident = format_ident!("fmap_{type_arg_idx}_ref");
+                                let map_ident = format_ident!("__fmap_{type_arg_idx}_ref");
                                 if is_end {
                                     tokens.extend(quote!(.#map_ident(__f)));
                                 } else {
