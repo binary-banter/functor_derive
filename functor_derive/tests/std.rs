@@ -1,5 +1,5 @@
-use functor_derive::{Functor, FunctorHashKeys, FunctorValues};
-use std::collections::HashMap;
+use functor_derive::{Functor, FunctorHashKeys, FunctorHashSet, FunctorValues};
+use std::collections::{HashMap, HashSet};
 
 fn map(value: usize) -> u64 {
     value as u64
@@ -42,4 +42,11 @@ fn hashmap_values() {
     let x = HashMap::from([(42usize, 13usize)]);
 
     assert_eq!(x.fmap_values(map), HashMap::from([(42usize, 13u64)]));
+}
+
+#[test]
+fn hashset() {
+    let x = HashSet::from([42usize, 13usize]);
+
+    assert_eq!(x.fmap(map), HashSet::from([42u64, 13u64]));
 }

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap, LinkedList, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, LinkedList, VecDeque};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
@@ -59,6 +59,52 @@ pub trait FunctorHashKeys<A: Hash + Eq>: Sized {
     fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
 
     fn __try_fmap_0_ref<B: Hash + Eq, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E>;
+}
+
+#[doc(hidden)]
+pub trait FunctorHashSet<A: Hash + Eq>: Sized {
+    type Target<B: Hash + Eq>;
+
+    fn fmap<B: Hash + Eq>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        self.__fmap_0_ref(&f)
+    }
+
+    fn try_fmap<B: Hash + Eq, E>(
+        self,
+        f: impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
+        self.__try_fmap_0_ref(&f)
+    }
+
+    fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
+
+    fn __try_fmap_0_ref<B: Hash + Eq, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E>;
+}
+
+#[doc(hidden)]
+pub trait FunctorBTreeSet<A: Ord>: Sized {
+    type Target<B: Ord>;
+
+    fn fmap<B: Ord>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        self.__fmap_0_ref(&f)
+    }
+
+    fn try_fmap<B: Ord, E>(
+        self,
+        f: impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
+        self.__try_fmap_0_ref(&f)
+    }
+
+    fn __fmap_0_ref<B: Ord>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
+
+    fn __try_fmap_0_ref<B: Ord, E>(
         self,
         f: &impl Fn(A) -> Result<B, E>,
     ) -> Result<Self::Target<B>, E>;
@@ -279,6 +325,21 @@ impl<A> Functor0<A> for LinkedList<A> {
     }
 }
 
+impl<A: Eq + Hash> FunctorHashSet<A> for HashSet<A> {
+    type Target<B: Hash + Eq> = HashSet<B>;
+
+    fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
+        self.into_iter().map(f).collect()
+    }
+
+    fn __try_fmap_0_ref<B: Hash + Eq, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
+        self.into_iter().map(f).collect()
+    }
+}
+
 impl<K: Eq + Hash, A> Functor<A> for HashMap<K, A> {
     type Target<B> = HashMap<K, B>;
 
@@ -388,6 +449,21 @@ impl<K: Ord, A> Functor1<A> for BTreeMap<K, A> {
         self.into_iter()
             .map(|(k, v)| f(v).map(|v| (k, v)))
             .collect()
+    }
+}
+
+impl<A: Ord> FunctorBTreeSet<A> for BTreeSet<A> {
+    type Target<B: Ord> = BTreeSet<B>;
+
+    fn __fmap_0_ref<B: Ord>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
+        self.into_iter().map(f).collect()
+    }
+
+    fn __try_fmap_0_ref<B: Ord, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
+        self.into_iter().map(f).collect()
     }
 }
 
