@@ -7,7 +7,6 @@ pub fn generate_map_from_type(
     typ: &Type,
     param: &Ident,
     field: &proc_macro2::TokenStream,
-    ref_name: &Ident,
     is_try: bool,
 ) -> (proc_macro2::TokenStream, bool) {
     (
@@ -41,7 +40,6 @@ pub fn generate_map_from_type(
                             first_type_arg,
                             param,
                             &quote!(v),
-                            ref_name,
                             is_try,
                         );
 
@@ -61,7 +59,7 @@ pub fn generate_map_from_type(
                 let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
                     let i = Index::from(i);
                     let field =
-                        generate_map_from_type(x, param, &quote!(#field.#i), ref_name, is_try).0;
+                        generate_map_from_type(x, param, &quote!(#field.#i), is_try).0;
                     quote!(#field,)
                 });
                 quote!((#(#positions)*)) // todo: do we need an ok in front of this tuple?
@@ -69,7 +67,7 @@ pub fn generate_map_from_type(
             Type::Array(array) => {
                 if type_contains_param(typ, param) {
                     let map =
-                        generate_map_from_type(&array.elem, param, &quote!(__v), ref_name, is_try)
+                        generate_map_from_type(&array.elem, param, &quote!(__v), is_try)
                             .0;
                     if is_try {
                         quote!(#field.try_fmap(|__v| Ok(#map))?)
@@ -80,7 +78,7 @@ pub fn generate_map_from_type(
                     quote!(#field)
                 }
             }
-            Type::Paren(p) => generate_map_from_type(&p.elem, param, field, ref_name, is_try).0,
+            Type::Paren(p) => generate_map_from_type(&p.elem, param, field, is_try).0,
             // We cannot possibly map these, but passing them through is fine.
             Type::BareFn(_)
             | Type::Reference(_)

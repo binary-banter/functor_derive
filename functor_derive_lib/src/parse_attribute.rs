@@ -60,8 +60,8 @@ fn functor_param_from_attrs(input: &DeriveInput) -> Option<Attribute> {
 
 #[derive(Debug)]
 pub struct Attribute {
-    default: Option<Ident>,
-    name_map: Vec<(Ident, Ident)>,
+    pub default: Option<Ident>,
+    pub name_map: Vec<(Ident, Ident)>,
 }
 
 impl Parse for Attribute {
