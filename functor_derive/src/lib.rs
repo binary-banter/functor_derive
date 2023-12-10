@@ -14,6 +14,7 @@ pub trait Functor<A>: Sized {
     fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
 }
 
+#[doc(hidden)]
 pub trait Functor0<A>: Sized {
     type Target<B>;
 
@@ -22,6 +23,7 @@ pub trait Functor0<A>: Sized {
     fn try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
 }
 
+#[doc(hidden)]
 pub trait Functor1<A>: Sized {
     type Target<B>;
 
@@ -30,6 +32,7 @@ pub trait Functor1<A>: Sized {
     fn try_fmap_1_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
 }
 
+#[doc(hidden)]
 pub trait FunctorValues<A>: Sized {
     type Target<B>;
 
@@ -38,6 +41,7 @@ pub trait FunctorValues<A>: Sized {
     fn try_fmap_values<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
 }
 
+#[doc(hidden)]
 pub trait FunctorHashKeys<A: Hash + Eq>: Sized {
     type Target<B: Hash + Eq>;
 
@@ -60,6 +64,7 @@ pub trait FunctorHashKeys<A: Hash + Eq>: Sized {
     ) -> Result<Self::Target<B>, E>;
 }
 
+#[doc(hidden)]
 pub trait FunctorOrdKeys<A: Ord>: Sized {
     type Target<B: Ord>;
 

@@ -1,10 +1,13 @@
 #![doc = include_str!("../README.md")]
+use crate::generate_fmap_body::generate_fmap_body;
+use crate::parse_attribute::parse_attribute;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, DeriveInput, GenericParam, PathSegment, Path, GenericArgument, Expr, ExprPath, Type, TypePath, Data};
-use crate::generate_fmap_body::generate_fmap_body;
-use crate::parse_attribute::parse_attribute;
+use syn::{
+    parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
+    PathSegment, Type, TypePath,
+};
 
 mod generate_fmap_body;
 mod generate_map;
@@ -43,9 +46,19 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let mut tokens = TokenStream::new();
     if let Some(default) = attribute.default {
-        tokens.extend(generate_default_impl(&default, &def_name, &source_params, &source_args));
+        tokens.extend(generate_default_impl(
+            &default,
+            &def_name,
+            &source_params,
+            &source_args,
+        ));
     }
-    tokens.extend(generate_refs_impl(&input.data, &def_name, &source_params, &source_args));
+    tokens.extend(generate_refs_impl(
+        &input.data,
+        &def_name,
+        &source_params,
+        &source_args,
+    ));
     tokens.into()
 }
 
@@ -65,7 +78,12 @@ fn find_index(source_params: &Vec<GenericParam>, ident: &Ident) -> (usize, usize
     unreachable!()
 }
 
-fn generate_refs_impl(data: &Data, def_name: &Ident, source_params: &Vec<GenericParam>, source_args: &Vec<GenericArgument>) -> TokenStream {
+fn generate_refs_impl(
+    data: &Data,
+    def_name: &Ident,
+    source_params: &Vec<GenericParam>,
+    source_args: &Vec<GenericArgument>,
+) -> TokenStream {
     let mut tokens = TokenStream::new();
     for param in source_params {
         if let GenericParam::Type(t) = param {
@@ -78,7 +96,7 @@ fn generate_refs_impl(data: &Data, def_name: &Ident, source_params: &Vec<Generic
 
             // Generate body of the `fmap` implementation.
             let fmap_ref_body = generate_fmap_body(&data, &def_name, &param_ident, false);
-            let try_fmap_ref_body = generate_fmap_body(&data, &def_name, &param_ident,true);
+            let try_fmap_ref_body = generate_fmap_body(&data, &def_name, &param_ident, true);
 
             let mut target_args = source_args.clone();
             target_args[param_idx_total] = GenericArgument::Type(Type::Path(TypePath {
@@ -106,7 +124,12 @@ fn generate_refs_impl(data: &Data, def_name: &Ident, source_params: &Vec<Generic
     tokens
 }
 
-fn generate_default_impl(default: &Ident, def_name: &Ident, source_params: &Vec<GenericParam>, source_args: &Vec<GenericArgument>) -> TokenStream {
+fn generate_default_impl(
+    default: &Ident,
+    def_name: &Ident,
+    source_params: &Vec<GenericParam>,
+    source_args: &Vec<GenericArgument>,
+) -> TokenStream {
     let (default_idx_total, default_idx_types) = find_index(source_params, default);
 
     // Create generic arguments for the target. We use `__B` for the mapped generic.
@@ -135,7 +158,6 @@ fn generate_default_impl(default: &Ident, def_name: &Ident, source_params: &Vec<
         }
     )
 }
-
 
 // fn generate_impl(input: &DeriveInput, def_name: &Ident, functor_param: Ident, name_suffix: Option<Ident>) -> TokenStream {
 // // Get the generic parameters *including* bounds and other attributes.

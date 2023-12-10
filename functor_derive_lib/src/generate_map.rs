@@ -1,14 +1,14 @@
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::abort_call_site;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{GenericArgument, Index, PathArguments, Type};
 
 pub fn generate_map_from_type(
     typ: &Type,
     param: &Ident,
-    field: &proc_macro2::TokenStream,
+    field: &TokenStream,
     is_try: bool,
-) -> (proc_macro2::TokenStream, bool) {
+) -> (TokenStream, bool) {
     (
         match typ {
             typ @ Type::Path(path) => {
@@ -24,32 +24,37 @@ pub fn generate_map_from_type(
                         else {
                             unreachable!()
                         };
-                        let first_type_arg = args
-                            .args
-                            .iter()
-                            .filter_map(|arg| {
-                                if let GenericArgument::Type(typ) = arg {
-                                    Some(typ)
-                                } else {
-                                    None
-                                }
-                            })
-                            .find(|typ| type_contains_param(typ, param))
-                            .expect("Expected a type param");
-                        let (map, is_end) = generate_map_from_type(
-                            first_type_arg,
-                            param,
-                            &quote!(v),
-                            is_try,
-                        );
 
-                        //TODO for tomorrow, should use #ref_name but only if self-recursive
-                        match (is_try, is_end) {
-                            (true, true) => quote!(#field.try_fmap_ref(__f)?),
-                            (true, false) => quote!(#field.try_fmap_ref(&|v| { Ok(#map) })?),
-                            (false, true) => quote!(#field.fmap_ref(__f)),
-                            (false, false) => quote!(#field.fmap_ref(&|v| { #map })),
+                        let mut tokens = quote!(#field);
+
+                        // Loop over all arguments that contain `param`
+                        for (type_arg_idx, type_arg) in args.args.iter().filter_map(|arg| {
+                            if let GenericArgument::Type(typ) = arg {
+                                Some(typ)
+                            } else {
+                                None
+                            }
+                        }).enumerate().filter(|(_, typ)| type_contains_param(typ, param)) {
+                            let (map, is_end) =
+                                generate_map_from_type(type_arg, param, &quote!(v), is_try);
+
+                            if is_try {
+                                let map_ident = format_ident!("try_fmap_{type_arg_idx}_ref");
+                                if is_end {
+                                    tokens.extend(quote!(.#map_ident(__f)?))
+                                } else {
+                                    tokens.extend(quote!(.#map_ident(&|v| { Ok(#map) })?))
+                                }
+                            } else {
+                                let map_ident = format_ident!("fmap_{type_arg_idx}_ref");
+                                if is_end {
+                                    tokens.extend(quote!(.#map_ident(__f)));
+                                } else {
+                                    tokens.extend(quote!(.#map_ident(&|v| { #map })));
+                                }
+                            }
                         }
+                        tokens
                     }
                 } else {
                     quote!(#field)
@@ -58,17 +63,14 @@ pub fn generate_map_from_type(
             Type::Tuple(tuple) => {
                 let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
                     let i = Index::from(i);
-                    let field =
-                        generate_map_from_type(x, param, &quote!(#field.#i), is_try).0;
+                    let field = generate_map_from_type(x, param, &quote!(#field.#i), is_try).0;
                     quote!(#field,)
                 });
                 quote!((#(#positions)*)) // todo: do we need an ok in front of this tuple?
             }
             Type::Array(array) => {
                 if type_contains_param(typ, param) {
-                    let map =
-                        generate_map_from_type(&array.elem, param, &quote!(__v), is_try)
-                            .0;
+                    let map = generate_map_from_type(&array.elem, param, &quote!(__v), is_try).0;
                     if is_try {
                         quote!(#field.try_fmap(|__v| Ok(#map))?)
                     } else {

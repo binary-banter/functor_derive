@@ -11,10 +11,8 @@ pub fn generate_fmap_body(
     is_try: bool,
 ) -> TokenStream {
     match data {
-        Data::Struct(s) => generate_fmap_body_struct(s, functor_param, def_name, is_try),
-        Data::Enum(data) => {
-            generate_fmap_body_enum(data, functor_param, def_name, is_try)
-        }
+        Data::Struct(d) => generate_fmap_body_struct(d, functor_param, def_name, is_try),
+        Data::Enum(d) => generate_fmap_body_enum(d, functor_param, def_name, is_try),
         Data::Union(_) => abort_call_site!("Deriving Functor on unions is unsupported."),
     }
 }
@@ -56,8 +54,7 @@ fn generate_fmap_body_enum(
                     .map(|i| format_ident!("v{i}"))
                     .take(fields.unnamed.len());
                 let fields = fields.unnamed.iter().zip(names.clone()).map(|(field, i)| {
-                    generate_map_from_type(&field.ty, functor_param, &quote!(#i), is_try)
-                        .0
+                    generate_map_from_type(&field.ty, functor_param, &quote!(#i), is_try).0
                 });
                 quote!(Self::#variant_name(#(#names),*) => #def_name::#variant_name(#(#fields),*))
             }
@@ -90,8 +87,7 @@ fn generate_fmap_body_struct(
         }
         Fields::Unnamed(s) => {
             let fields = s.unnamed.iter().enumerate().map(|(i, field)| {
-                generate_map_from_type(&field.ty, functor_param, &quote!(self.#i), is_try)
-                    .0
+                generate_map_from_type(&field.ty, functor_param, &quote!(self.#i), is_try).0
             });
             quote!(#def_name(#(#fields),*))
         }

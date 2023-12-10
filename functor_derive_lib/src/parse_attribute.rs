@@ -1,11 +1,11 @@
-use std::collections::HashSet;
 use proc_macro2::{Ident, Span};
 use proc_macro_error::{abort, abort_call_site};
 use quote::format_ident;
-use syn::{DeriveInput, GenericParam, Meta, parse, Token};
+use std::collections::HashSet;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
+use syn::{parse, DeriveInput, GenericParam, Meta, Token};
 
 pub fn parse_attribute(input: &DeriveInput) -> Attribute {
     functor_param_from_attrs(&input).unwrap_or_else(|| functor_param_first(&input))
