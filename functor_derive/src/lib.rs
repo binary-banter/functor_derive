@@ -95,10 +95,7 @@ pub trait FunctorBTreeSet<A: Ord>: Sized {
         self.__fmap_0_ref(&f)
     }
 
-    fn try_fmap<B: Ord, E>(
-        self,
-        f: impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
+    fn try_fmap<B: Ord, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
         self.__try_fmap_0_ref(&f)
     }
 

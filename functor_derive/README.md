@@ -9,8 +9,9 @@ This crate can generate a functor for generic structs and enums.
 A functor is a trait that contains an `fmap` function that maps a generic parameter.
 This enables you to transform the contents of any type without altering its shape.
 
-The following example demonstrates how to derive a functor, providing you with an `fmap` method. 
-For more intricate examples, refer to the tests directory in the [project repository](https://github.com/binary-banter/functor_derive/tree/main/functor_derive/tests).
+The following example demonstrates how to derive a functor, providing you with an `fmap` method.
+For more intricate examples, refer to the tests directory in
+the [project repository](https://github.com/binary-banter/functor_derive/tree/main/functor_derive/tests).
 
 ```rust
 use functor_derive::Functor;
@@ -35,14 +36,16 @@ Additionally, a `try_fmap` function is generated. This can be useful for fallibl
 
 ```rust
 let original = MyType { value: "42", list: vec!["1", "3"], unaffected: false };
-let transformed = original.try_fmap(|x| x.parse::<u64>())?;
+let transformed = original.try_fmap( | x| x.parse::<u64>()) ?;
 ```
 
 ## Attribute
 
-You can invoke the derive macro in multiple ways. Omitting the attribute defaults to deriving the `Functor` trait for the first generic type parameter, as illustrated in the first example above.
+You can invoke the derive macro in multiple ways. Omitting the attribute defaults to deriving the `Functor` trait for
+the first generic type parameter, as illustrated in the first example above.
 
-Alternatively, you can specify a default type to override the derive macro, which will prevent the derive macro choosing the first
+Alternatively, you can specify a default type to override the derive macro, which will prevent the derive macro choosing
+the first
 generic type parameter. This is done as follows:
 
 ```rust
@@ -54,7 +57,8 @@ struct MyType<T1, T2> {
 }
 ```
 
-Sometimes, you might want to rename your `fmap` function using the as keyword. The following example generates the method `fmap_keys`.
+Sometimes, you might want to rename your `fmap` function using the as keyword. The following example generates the
+method `fmap_keys`.
 
 ```rust
 #[derive(Functor)]
@@ -90,4 +94,5 @@ This crate can handle the following perfectly:
 - (Mutually) recursive types
 - Bounded parameters, like `T: Display`
 
-If you find a case where the derive macro fails, feel free to open an issue [here](https://github.com/binary-banter/functor_derive/issues)
+If you find a case where the derive macro fails, feel free to open an
+issue [here](https://github.com/binary-banter/functor_derive/issues)
