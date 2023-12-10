@@ -1,3 +1,4 @@
+use paste::paste;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, LinkedList, VecDeque};
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -14,23 +15,43 @@ pub trait Functor<A>: Sized {
     fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
 }
 
-#[doc(hidden)]
-pub trait Functor0<A>: Sized {
-    type Target<B>;
+#[macro_export]
+macro_rules! functor_n {
+    ($n:expr) => {
+        paste! {
+        #[doc(hidden)]
+        pub trait [<Functor $n>]<A>: Sized {
+            type Target<B>;
 
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
+            fn [<__fmap_ $n _ref>]<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
 
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
+            fn [<__try_fmap_ $n _ref>]<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
+        }
+        }
+    };
 }
 
-#[doc(hidden)]
-pub trait Functor1<A>: Sized {
-    type Target<B>;
-
-    fn __fmap_1_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
-
-    fn __try_fmap_1_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
-}
+functor_n!(0);
+functor_n!(1);
+functor_n!(2);
+functor_n!(3);
+functor_n!(4);
+functor_n!(5);
+functor_n!(6);
+functor_n!(7);
+functor_n!(8);
+functor_n!(9);
+functor_n!(10);
+functor_n!(11);
+functor_n!(12);
+functor_n!(13);
+functor_n!(14);
+functor_n!(15);
+functor_n!(16);
+functor_n!(17);
+functor_n!(18);
+functor_n!(19);
+// please don't use more than 20 generics.
 
 #[doc(hidden)]
 pub trait FunctorValues<A>: Sized {
