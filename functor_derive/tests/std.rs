@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use functor_derive::{Functor, FunctorHashKeys, FunctorValues};
+use std::collections::HashMap;
 
 fn map(value: usize) -> u64 {
     value as u64

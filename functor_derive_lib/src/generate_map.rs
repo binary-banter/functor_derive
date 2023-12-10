@@ -37,8 +37,13 @@ pub fn generate_map_from_type(
                             })
                             .find(|typ| type_contains_param(typ, param))
                             .expect("Expected a type param");
-                        let (map, is_end) =
-                            generate_map_from_type(first_type_arg, param, &quote!(v), ref_name, is_try);
+                        let (map, is_end) = generate_map_from_type(
+                            first_type_arg,
+                            param,
+                            &quote!(v),
+                            ref_name,
+                            is_try,
+                        );
 
                         //TODO for tomorrow, should use #ref_name but only if self-recursive
                         match (is_try, is_end) {
@@ -55,14 +60,17 @@ pub fn generate_map_from_type(
             Type::Tuple(tuple) => {
                 let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
                     let i = Index::from(i);
-                    let field = generate_map_from_type(x, param, &quote!(#field.#i), ref_name, is_try).0;
+                    let field =
+                        generate_map_from_type(x, param, &quote!(#field.#i), ref_name, is_try).0;
                     quote!(#field,)
                 });
                 quote!((#(#positions)*)) // todo: do we need an ok in front of this tuple?
             }
             Type::Array(array) => {
                 if type_contains_param(typ, param) {
-                    let map = generate_map_from_type(&array.elem, param, &quote!(__v), ref_name, is_try).0;
+                    let map =
+                        generate_map_from_type(&array.elem, param, &quote!(__v), ref_name, is_try)
+                            .0;
                     if is_try {
                         quote!(#field.try_fmap(|__v| Ok(#map))?)
                     } else {

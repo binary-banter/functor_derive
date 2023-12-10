@@ -45,13 +45,19 @@ pub trait FunctorHashKeys<A: Hash + Eq>: Sized {
         self.fmap_0_ref(&f)
     }
 
-    fn try_fmap_keys<B: Hash + Eq, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+    fn try_fmap_keys<B: Hash + Eq, E>(
+        self,
+        f: impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
         self.try_fmap_0_ref(&f)
     }
 
     fn fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
 
-    fn try_fmap_0_ref<B: Hash + Eq, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
+    fn try_fmap_0_ref<B: Hash + Eq, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E>;
 }
 
 pub trait FunctorOrdKeys<A: Ord>: Sized {
@@ -67,7 +73,10 @@ pub trait FunctorOrdKeys<A: Ord>: Sized {
 
     fn fmap_0_ref<B: Ord>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
 
-    fn try_fmap_0_ref<B: Ord, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
+    fn try_fmap_0_ref<B: Ord, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E>;
 }
 
 impl<A> Functor<A> for Option<A> {
@@ -279,7 +288,10 @@ impl<A: Eq + Hash, V> FunctorHashKeys<A> for HashMap<A, V> {
         self.into_iter().map(|(k, v)| (f(k), v)).collect()
     }
 
-    fn try_fmap_0_ref<B: Hash + Eq, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+    fn try_fmap_0_ref<B: Hash + Eq, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
         self.into_iter()
             .map(|(k, v)| f(k).map(|k| (k, v)))
             .collect()
@@ -312,7 +324,6 @@ impl<K: Eq + Hash, A> Functor1<A> for HashMap<K, A> {
     }
 }
 
-
 impl<K: Ord, A> Functor<A> for BTreeMap<K, A> {
     type Target<B> = BTreeMap<K, B>;
 
@@ -333,7 +344,10 @@ impl<A: Ord, V> FunctorOrdKeys<A> for BTreeMap<A, V> {
         self.into_iter().map(|(k, v)| (f(k), v)).collect()
     }
 
-    fn try_fmap_0_ref<B: Ord, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+    fn try_fmap_0_ref<B: Ord, E>(
+        self,
+        f: &impl Fn(A) -> Result<B, E>,
+    ) -> Result<Self::Target<B>, E> {
         self.into_iter()
             .map(|(k, v)| f(k).map(|k| (k, v)))
             .collect()
