@@ -136,12 +136,12 @@ fn generate_refs_impl(
                 tokens.extend(quote!(
                     #[allow(clippy::all)]
                     impl<#(#source_params),*> #def_name<#(#source_args),*> {
-                        fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
+                        pub fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
                             use ::functor_derive::*;
                             #fmap_ref_body
                         }
 
-                        fn #try_fmap_ident<__B #bounds_colon #bounds, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                        pub fn #try_fmap_ident<__B #bounds_colon #bounds, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
                             use ::functor_derive::*;
                             Ok(#try_fmap_ref_body)
                         }
@@ -198,12 +198,12 @@ fn generate_default_impl(
         quote!(
             #[allow(clippy::all)]
             impl<#(#source_params),*> #def_name<#(#source_args),*> {
-                fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+                pub fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
                     use ::functor_derive::*;
                     self.#default_map(&__f)
                 }
 
-                fn try_fmap<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                pub fn try_fmap<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
                     use ::functor_derive::*;
                     self.#default_try_map(&__f)
                 }
@@ -243,12 +243,12 @@ fn generate_named_impl(
     quote!(
         #[allow(clippy::all)]
         impl<#(#source_params),*> #def_name<#(#source_args),*> {
-            fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+            pub fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
                 use ::functor_derive::*;
                 self.#fmap(&__f)
             }
 
-            fn #try_fmap_name<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+            pub fn #try_fmap_name<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
                 use ::functor_derive::*;
                 self.#fmap_try(&__f)
             }
