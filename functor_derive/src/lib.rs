@@ -128,7 +128,10 @@ impl<A, E> Functor0<A> for Result<A, E> {
         self.map(f)
     }
 
-    fn __try_fmap_0_ref<B, E2>(self, f: &impl Fn(A) -> Result<B, E2>) -> Result<Self::Target<B>, E2> {
+    fn __try_fmap_0_ref<B, E2>(
+        self,
+        f: &impl Fn(A) -> Result<B, E2>,
+    ) -> Result<Self::Target<B>, E2> {
         match self.map(f) {
             Ok(Ok(v)) => Ok(Ok(v)),
             Ok(Err(e)) => Err(e),
@@ -144,7 +147,10 @@ impl<O, A> Functor1<A> for Result<O, A> {
         self.map_err(f)
     }
 
-    fn __try_fmap_1_ref<B, E2>(self, f: &impl Fn(A) -> Result<B, E2>) -> Result<Self::Target<B>, E2> {
+    fn __try_fmap_1_ref<B, E2>(
+        self,
+        f: &impl Fn(A) -> Result<B, E2>,
+    ) -> Result<Self::Target<B>, E2> {
         match self.map_err(f) {
             Ok(v) => Ok(Ok(v)),
             Err(Ok(e)) => Ok(Err(e)),

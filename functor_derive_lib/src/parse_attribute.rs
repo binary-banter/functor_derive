@@ -8,7 +8,7 @@ use syn::spanned::Spanned;
 use syn::{parse, DeriveInput, GenericParam, Meta, Token};
 
 pub fn parse_attribute(input: &DeriveInput) -> Attribute {
-    functor_param_from_attrs(&input).unwrap_or_else(|| functor_param_first(&input))
+    functor_param_from_attrs(input).unwrap_or_else(|| functor_param_first(input))
 }
 
 fn functor_param_first(input: &DeriveInput) -> Attribute {
@@ -70,7 +70,7 @@ impl Parse for Attribute {
         let mut name_map = Vec::new();
         let mut seen_names = HashSet::new();
 
-        for sub_attr in Punctuated::<SubAttribute, Token![,]>::parse_separated_nonempty(&input)? {
+        for sub_attr in Punctuated::<SubAttribute, Token![,]>::parse_separated_nonempty(input)? {
             match sub_attr {
                 SubAttribute::Default(param) => {
                     if default.replace(param).is_some() {

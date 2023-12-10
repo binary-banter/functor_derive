@@ -7,7 +7,6 @@ use std::collections::{BTreeMap, HashMap};
 // recursion,
 // mutual recursion,
 
-
 #[test]
 fn struct_simple() {
     #[derive(Functor)]
@@ -257,7 +256,7 @@ fn indirect_tuple_generic() {
 fn chained_fmap() {
     #[derive(Functor)]
     struct StructSimple<A> {
-        field_1: ApplePie<A, A>
+        field_1: ApplePie<A, A>,
     }
 
     // This incredible struct name was brought to you by Jonathan :)!
@@ -268,10 +267,7 @@ fn chained_fmap() {
     }
 
     let x = StructSimple::<usize> {
-        field_1: ApplePie {
-            apple: 15,
-            pie: 17
-        }
+        field_1: ApplePie { apple: 15, pie: 17 },
     };
 
     assert_eq!(

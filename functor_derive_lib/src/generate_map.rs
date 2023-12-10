@@ -28,13 +28,19 @@ pub fn generate_map_from_type(
                         let mut tokens = quote!(#field);
 
                         // Loop over all arguments that contain `param`
-                        for (type_arg_idx, type_arg) in args.args.iter().filter_map(|arg| {
-                            if let GenericArgument::Type(typ) = arg {
-                                Some(typ)
-                            } else {
-                                None
-                            }
-                        }).enumerate().filter(|(_, typ)| type_contains_param(typ, param)) {
+                        for (type_arg_idx, type_arg) in args
+                            .args
+                            .iter()
+                            .filter_map(|arg| {
+                                if let GenericArgument::Type(typ) = arg {
+                                    Some(typ)
+                                } else {
+                                    None
+                                }
+                            })
+                            .enumerate()
+                            .filter(|(_, typ)| type_contains_param(typ, param))
+                        {
                             let (map, is_end) =
                                 generate_map_from_type(type_arg, param, &quote!(v), is_try);
 

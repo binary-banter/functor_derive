@@ -2,7 +2,7 @@
 use crate::generate_fmap_body::generate_fmap_body;
 use crate::parse_attribute::parse_attribute;
 use proc_macro2::{Ident, TokenStream};
-use proc_macro_error::{proc_macro_error};
+use proc_macro_error::proc_macro_error;
 use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
@@ -71,16 +71,14 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     tokens.into()
 }
 
-fn find_index(source_params: &Vec<GenericParam>, ident: &Ident) -> (usize, usize) {
-    let mut total = 0;
+fn find_index(source_params: &[GenericParam], ident: &Ident) -> (usize, usize) {
     let mut types = 0;
-    for param in source_params {
+    for (total, param) in source_params.iter().enumerate() {
         match param {
             GenericParam::Type(t) if &t.ident == ident => return (total, types),
             GenericParam::Type(_) => types += 1,
             _ => {}
-        };
-        total += 1;
+        }
     }
     unreachable!()
 }
@@ -102,8 +100,8 @@ fn generate_refs_impl(
             let try_fmap_ident = format_ident!("__try_fmap_{param_idx_types}_ref");
 
             // Generate body of the `fmap` implementation.
-            let fmap_ref_body = generate_fmap_body(&data, &def_name, &param_ident, false);
-            let try_fmap_ref_body = generate_fmap_body(&data, &def_name, &param_ident, true);
+            let fmap_ref_body = generate_fmap_body(data, def_name, &param_ident, false);
+            let try_fmap_ref_body = generate_fmap_body(data, def_name, &param_ident, true);
 
             let mut target_args = source_args.clone();
             target_args[param_idx_total] = GenericArgument::Type(Type::Path(TypePath {
@@ -111,21 +109,45 @@ fn generate_refs_impl(
                 path: Path::from(PathSegment::from(format_ident!("__B"))),
             }));
 
-            tokens.extend(quote!(
-                impl<#(#source_params),*> ::functor_derive::#functor_trait_ident<#param_ident> for #def_name<#(#source_args),*> {
-                    type Target<__B> = #def_name<#(#target_args),*>;
+            let GenericParam::Type(t) = &source_params[param_idx_total] else {
+                unreachable!()
+            };
+            let bounds_colon = &t.colon_token;
+            let bounds = &t.bounds;
 
-                    fn #fmap_ident<__B>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
-                        use ::functor_derive::*;
-                        #fmap_ref_body
-                    }
+            if bounds.is_empty() {
+                tokens.extend(quote!(
+                    #[allow(clippy::all)]
+                    impl<#(#source_params),*> ::functor_derive::#functor_trait_ident<#param_ident> for #def_name<#(#source_args),*> {
+                        type Target<__B> = #def_name<#(#target_args),*>;
 
-                    fn #try_fmap_ident<__B, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                        use ::functor_derive::*;
-                        Ok(#try_fmap_ref_body)
+                        fn #fmap_ident<__B>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
+                            use ::functor_derive::*;
+                            #fmap_ref_body
+                        }
+
+                        fn #try_fmap_ident<__B, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                            use ::functor_derive::*;
+                            Ok(#try_fmap_ref_body)
+                        }
                     }
-                }
-            ))
+                ))
+            } else {
+                tokens.extend(quote!(
+                    #[allow(clippy::all)]
+                    impl<#(#source_params),*> #def_name<#(#source_args),*> {
+                        fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
+                            use ::functor_derive::*;
+                            #fmap_ref_body
+                        }
+
+                        fn #try_fmap_ident<__B #bounds_colon #bounds, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                            use ::functor_derive::*;
+                            Ok(#try_fmap_ref_body)
+                        }
+                    }
+                ))
+            }
         }
     }
     tokens
@@ -149,21 +171,45 @@ fn generate_default_impl(
     let default_map = format_ident!("__fmap_{default_idx_types}_ref");
     let default_try_map = format_ident!("__try_fmap_{default_idx_types}_ref");
 
-    quote!(
-        impl<#(#source_params),*> ::functor_derive::Functor<#param> for #def_name<#(#source_args),*> {
-            type Target<__B> = #def_name<#(#target_args),*>;
+    let GenericParam::Type(t) = &source_params[default_idx_total] else {
+        unreachable!()
+    };
+    let bounds_colon = &t.colon_token;
+    let bounds = &t.bounds;
 
-            fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
-                use ::functor_derive::*;
-                self.#default_map(&__f)
-            }
+    if bounds.is_empty() {
+        quote!(
+            #[allow(clippy::all)]
+            impl<#(#source_params),*> ::functor_derive::Functor<#param> for #def_name<#(#source_args),*> {
+                type Target<__B> = #def_name<#(#target_args),*>;
 
-            fn try_fmap<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                use ::functor_derive::*;
-                self.#default_try_map(&__f)
+                fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+                    use ::functor_derive::*;
+                    self.#default_map(&__f)
+                }
+
+                fn try_fmap<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                    use ::functor_derive::*;
+                    self.#default_try_map(&__f)
+                }
             }
-        }
-    )
+        )
+    } else {
+        quote!(
+            #[allow(clippy::all)]
+            impl<#(#source_params),*> #def_name<#(#source_args),*> {
+                fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+                    use ::functor_derive::*;
+                    self.#default_map(&__f)
+                }
+
+                fn try_fmap<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                    use ::functor_derive::*;
+                    self.#default_try_map(&__f)
+                }
+            }
+        )
+    }
 }
 
 fn generate_named_impl(
@@ -188,14 +234,21 @@ fn generate_named_impl(
     let fmap = format_ident!("__fmap_{default_idx_types}_ref");
     let fmap_try = format_ident!("__try_fmap_{default_idx_types}_ref");
 
+    let GenericParam::Type(t) = &source_params[default_idx_total] else {
+        unreachable!()
+    };
+    let bounds_colon = &t.colon_token;
+    let bounds = &t.bounds;
+
     quote!(
+        #[allow(clippy::all)]
         impl<#(#source_params),*> #def_name<#(#source_args),*> {
-            fn #fmap_name<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+            fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
                 use ::functor_derive::*;
                 self.#fmap(&__f)
             }
 
-            fn #try_fmap_name<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+            fn #try_fmap_name<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
                 use ::functor_derive::*;
                 self.#fmap_try(&__f)
             }

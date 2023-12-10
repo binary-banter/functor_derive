@@ -2,8 +2,6 @@
 
 use functor_derive::Functor;
 use std::any::{Any, TypeId};
-use std::collections::{HashMap, VecDeque};
-use std::marker::PhantomData;
 
 #[test]
 fn mutual_recursion() {
@@ -72,7 +70,10 @@ fn recursion_swap() {
         v2: 43usize,
     };
 
-    assert_eq!(x.fmap(|x| x as u64).type_id(), TypeId::of::<TypeA<u64, usize>>());
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<TypeA<u64, usize>>()
+    );
 }
 
 #[test]
@@ -91,7 +92,6 @@ fn recursion_swap_mutual() {
         v2: T,
     }
 
-
     let x = TypeA {
         b: Some(Box::new(TypeB {
             b: None,
@@ -102,5 +102,8 @@ fn recursion_swap_mutual() {
         v2: 43usize,
     };
 
-    assert_eq!(x.fmap(|x| x as u64).type_id(), TypeId::of::<TypeA<u64, usize>>());
+    assert_eq!(
+        x.fmap(|x| x as u64).type_id(),
+        TypeId::of::<TypeA<u64, usize>>()
+    );
 }

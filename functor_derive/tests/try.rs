@@ -1,5 +1,5 @@
-use std::any::{Any, TypeId};
 use functor_derive::Functor;
+use std::any::{Any, TypeId};
 
 fn test_try(v: usize) -> Result<u64, ()> {
     Ok(v as u64)

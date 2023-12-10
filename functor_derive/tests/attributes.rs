@@ -19,10 +19,7 @@ fn default_single() {
         v2: true,
     };
 
-    assert_eq!(
-        x.fmap(|x| x as u64).type_id(),
-        TypeId::of::<MyType<u64>>()
-    );
+    assert_eq!(x.fmap(|x| x as u64).type_id(), TypeId::of::<MyType<u64>>());
 }
 
 #[test]
@@ -59,10 +56,7 @@ fn map_specified_and_name() {
         v2: true,
     };
 
-    assert_eq!(
-        x.fmap(|x| x as u64).type_id(),
-        TypeId::of::<MyType<u64>>()
-    );
+    assert_eq!(x.fmap(|x| x as u64).type_id(), TypeId::of::<MyType<u64>>());
 
     assert_eq!(
         x.fmap_stuff(|x| x as u64).type_id(),
@@ -82,7 +76,7 @@ fn map_multi() {
     struct MyType<S, T> {
         v1: S,
         v2: bool,
-        v3: T
+        v3: T,
     }
 
     let x = MyType {
