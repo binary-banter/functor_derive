@@ -32,7 +32,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 }
 
 fn generate_impl(input: &DeriveInput, def_name: &Ident, functor_param: Ident, name_suffix: Option<Ident>) -> TokenStream {
-// Get the generic parameters *including* bounds and other attributes.
+    // Get the generic parameters *including* bounds and other attributes.
     let gen_params = input.generics.params.iter().cloned().collect::<Vec<_>>();
 
     // Find the position and type of the generic parameter. Aborts if absent.
@@ -75,56 +75,57 @@ fn generate_impl(input: &DeriveInput, def_name: &Ident, functor_param: Ident, na
         path: Path::from(PathSegment::from(format_ident!("__B"))),
     }));
 
-    // Generate body of the `fmap` implementation.
-    let fmap_body =
-        generate_fmap_body::generate_fmap_body(&input.data, &def_name, &functor_param, false);
-    let try_fmap_body =
-        generate_fmap_body::generate_fmap_body(&input.data, &def_name, &functor_param, true);
-
-    // If there are no bounds on the generics, generate tokens for `Functor` trait impl for the given definition.
-    // Otherwise, generate `fmap` impl for the given definition.
-    if functor_param_type.bounds.is_empty() && name_suffix.is_none() {
-        quote!(
-            impl<#(#gen_params),*> ::functor_derive::Functor<#functor_param> for #def_name<#(#source_args),*> {
-                type Target<__B> = #def_name<#(#target_args),*>;
-
-                fn fmap_ref<__B>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
-                    #fmap_body
-                }
-
-                fn try_fmap_ref<__B, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                    Ok(#try_fmap_body)
-                }
-            }
-        )
-    } else {
-        let bounds = &functor_param_type.bounds;
-
-        let suffix = name_suffix.map(|name_suffix| format!("_{name_suffix}")).unwrap_or_default();
-        let fmap = format_ident!("fmap{suffix}");
-        let fmap_ref = format_ident!("fmap_ref{suffix}");
-        let try_fmap = format_ident!("try_fmap{suffix}");
-        let try_fmap_ref = format_ident!("try_fmap_ref{suffix}");
-
-        quote!(
-            impl<#(#gen_params),*> #def_name<#(#source_args),*> {
-                pub fn #fmap<__B: #bounds>(self, __f: impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
-                    self.fmap_ref(&__f)
-                }
-
-                pub fn #fmap_ref<__B: #bounds>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
-                    #fmap_body
-                }
-
-                pub fn #try_fmap<__B: #bounds, __E>(self, __f: impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                    self.try_fmap_ref(&__f)
-                }
-
-                pub fn #try_fmap_ref<__B: #bounds, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                    Ok(#try_fmap_body)
-                }
-            }
-        )
-    }.into()
+    todo!()
+    // // Generate body of the `fmap` implementation.
+    // let fmap_body =
+    //     generate_fmap_body::generate_fmap_body(&input.data, &def_name, &functor_param, false);
+    // let try_fmap_body =
+    //     generate_fmap_body::generate_fmap_body(&input.data, &def_name, &functor_param, true);
+    //
+    // // If there are no bounds on the generics, generate tokens for `Functor` trait impl for the given definition.
+    // // Otherwise, generate `fmap` impl for the given definition.
+    // if functor_param_type.bounds.is_empty() && name_suffix.is_none() {
+    //     quote!(
+    //         impl<#(#gen_params),*> ::functor_derive::Functor<#functor_param> for #def_name<#(#source_args),*> {
+    //             type Target<__B> = #def_name<#(#target_args),*>;
+    //
+    //             fn fmap_ref<__B>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
+    //                 #fmap_body
+    //             }
+    //
+    //             fn try_fmap_ref<__B, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+    //                 Ok(#try_fmap_body)
+    //             }
+    //         }
+    //     )
+    // } else {
+    //     let bounds = &functor_param_type.bounds;
+    //
+    //     let suffix = name_suffix.map(|name_suffix| format!("_{name_suffix}")).unwrap_or_default();
+    //     let fmap = format_ident!("fmap{suffix}");
+    //     let fmap_ref = format_ident!("fmap_ref{suffix}");
+    //     let try_fmap = format_ident!("try_fmap{suffix}");
+    //     let try_fmap_ref = format_ident!("try_fmap_ref{suffix}");
+    //
+    //     quote!(
+    //         impl<#(#gen_params),*> #def_name<#(#source_args),*> {
+    //             pub fn #fmap<__B: #bounds>(self, __f: impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
+    //                 self.fmap_ref(&__f)
+    //             }
+    //
+    //             pub fn #fmap_ref<__B: #bounds>(self, __f: &impl Fn(#functor_param) -> __B) -> #def_name<#(#target_args),*> {
+    //                 #fmap_body
+    //             }
+    //
+    //             pub fn #try_fmap<__B: #bounds, __E>(self, __f: impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+    //                 self.try_fmap_ref(&__f)
+    //             }
+    //
+    //             pub fn #try_fmap_ref<__B: #bounds, __E>(self, __f: &impl Fn(#functor_param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+    //                 Ok(#try_fmap_body)
+    //             }
+    //         }
+    //     )
+    // }.into()
 }
 
