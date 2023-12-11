@@ -1,14 +1,14 @@
 pub mod impl_alloc;
-pub mod impl_std;
 pub mod impl_core;
+pub mod impl_std;
 
 use paste::paste;
 
 // Re-export derive macro.
 pub use functor_derive_lib::*;
+pub use impl_alloc::*;
 #[allow(unused)]
 pub use impl_core::*;
-pub use impl_alloc::*;
 pub use impl_std::*;
 
 pub trait Functor<A>: Sized {
@@ -104,4 +104,3 @@ macro_rules! functor_impl {
         }
     };
 }
-

@@ -1,6 +1,6 @@
-use std::marker::PhantomData;
-use functor_derive::Functor;
 use crate::funcmap::{T1, T2};
+use functor_derive::Functor;
+use std::marker::PhantomData;
 
 #[test]
 fn attributes_on_type_params_are_supported() {

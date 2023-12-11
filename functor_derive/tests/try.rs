@@ -52,10 +52,7 @@ fn try_array() {
     let x = ["1".to_string(), "2".to_string(), "3".to_string()];
     let v = x.try_fmap(|x| x.parse::<usize>());
 
-    assert_eq!(
-        v,
-        Ok([1,2,3])
-    );
+    assert_eq!(v, Ok([1, 2, 3]));
 }
 
 #[test]
@@ -82,17 +79,23 @@ fn try_array_drops() {
     let dropped_1 = AtomicBool::new(false);
     let dropped_2 = AtomicBool::new(false);
 
-    let x = [DropCheck {
-        dropped: &dropped_1,
-        should_fail: false,
-    },DropCheck {
-        dropped: &dropped_2,
-        should_fail: true }];
+    let x = [
+        DropCheck {
+            dropped: &dropped_1,
+            should_fail: false,
+        },
+        DropCheck {
+            dropped: &dropped_2,
+            should_fail: true,
+        },
+    ];
 
-    let drop_check_array = x.try_fmap(|drop_check| if drop_check.should_fail {
-        Err(())
-    } else {
-        Ok(drop_check)
+    let drop_check_array = x.try_fmap(|drop_check| {
+        if drop_check.should_fail {
+            Err(())
+        } else {
+            Ok(drop_check)
+        }
     });
 
     assert!(drop_check_array.is_err());

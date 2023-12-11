@@ -1,9 +1,9 @@
+use crate::*;
 use core::cell::{Cell, RefCell, UnsafeCell};
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
-use core::{mem, ptr};
 use core::ops::ControlFlow;
-use crate::*;
+use core::{mem, ptr};
 
 functor_impl!(Option);
 
@@ -102,7 +102,6 @@ impl<const N: usize, A> Functor0<A> for [A; N] {
     fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
         self.map(f)
     }
-
 
     // This implementation was provided by Matthias Stemmler's crate [funcmap_derive](https://crates.io/crates/funcmap_derive) under the MIT license.
     //
@@ -218,8 +217,8 @@ impl<A> Functor0<A> for UnsafeCell<A> {
     }
 }
 
-impl<A, C> Functor<A> for ControlFlow<A,C> {
-    type Target<B> = ControlFlow<B,C>;
+impl<A, C> Functor<A> for ControlFlow<A, C> {
+    type Target<B> = ControlFlow<B, C>;
 
     fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
         self.__fmap_0_ref(&f)

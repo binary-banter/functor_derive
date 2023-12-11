@@ -1,6 +1,6 @@
-use std::hash::Hash;
-use std::collections::{HashMap, HashSet};
 use crate::{Functor, Functor1, FunctorValues};
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 #[doc(hidden)]
 pub trait FunctorHashKeys<A: Hash + Eq>: Sized {

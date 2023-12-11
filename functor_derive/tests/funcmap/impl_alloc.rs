@@ -1,7 +1,7 @@
-use std::collections::{BinaryHeap,BTreeMap, BTreeSet, LinkedList, VecDeque};
-use std::vec;
-use functor_derive::Functor;
 use crate::funcmap::{T1, T2};
+use functor_derive::Functor;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, LinkedList, VecDeque};
+use std::vec;
 
 #[test]
 fn field_of_binary_heap_type_is_mapped() {

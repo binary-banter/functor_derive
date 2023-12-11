@@ -31,29 +31,29 @@ fn deprecated_lint_is_allowed_on_derived_impl() {
     struct Test<T>(Deprecated<T>);
 }
 
-// todo: we don't have where clauses yet as a feature
-// #[test]
-// fn drop_bounds_lint_is_allowed_on_derived_impl() {
-//     #![deny(drop_bounds)]
-//
-//     #[allow(drop_bounds)]
-//     #[derive(Functor)]
-//     struct Test<T>(T)
-//         where
-//             T: Drop;
-// }
-//
-// #[test]
-// fn dyn_drop_lint_is_allowed_on_derived_impl() {
-//     #![deny(dyn_drop)]
-//
-//     #[allow(dyn_drop)]
-//     #[allow(trivial_bounds)]
-//     #[derive(Functor)]
-//     struct Test<T>(T)
-//         where
-//                 for<'a> &'a dyn Drop: Copy;
-// }
+#[test]
+fn drop_bounds_lint_is_allowed_on_derived_impl() {
+    #![deny(drop_bounds)]
+
+    #[allow(unused)]
+    #[allow(drop_bounds)]
+    #[derive(Functor)]
+    struct Test<T>(T)
+    where
+        T: Drop;
+}
+
+#[test]
+fn dyn_drop_lint_is_allowed_on_derived_impl() {
+    #![deny(dyn_drop)]
+
+    #[allow(dyn_drop)]
+    #[allow(trivial_bounds)]
+    #[derive(Functor)]
+    struct Test<T>(T)
+        where
+                for<'a> &'a dyn Drop: Copy;
+}
 
 // We are pretty confident these tests will succeed - it's just too much of a hassle to implement in our test setup.
 // #[test]

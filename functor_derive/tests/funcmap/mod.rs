@@ -7,21 +7,21 @@
 //! * MIT license (LICENSE-MIT or https://opensource.org/licenses/MIT)
 //! at your option.
 
+mod decorations;
+mod fallible;
+mod hygiene;
+mod impl_alloc;
+mod impl_core;
+mod impl_std;
+mod lints;
+mod multi_param;
+mod opts_crate;
 mod opts_params;
 mod single_param;
 mod variants;
-mod opts_crate;
-mod multi_param;
-mod lints;
-mod impl_std;
-mod impl_core;
-mod impl_alloc;
-mod hygiene;
-mod fallible;
-mod decorations;
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, PartialOrd, Ord)]
 struct T1;
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, PartialOrd,  Ord)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, PartialOrd, Ord)]
 struct T2;

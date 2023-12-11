@@ -73,24 +73,36 @@ fn generate_fmap_body_struct(
 ) -> Option<TokenStream> {
     match &strct.fields {
         Fields::Named(fields) => {
-            let fields = fields.named.iter().map(|field| {
-                let field_name = field.ident.as_ref().unwrap();
-                let field = generate_map_from_type(
-                    &field.ty,
-                    functor_param,
-                    &quote!(self.#field_name),
-                    is_try,
-                )?
-                .0;
-                Some(quote!(#field_name: #field))
-            }).collect::<Option<Vec<_>>>()?;
+            let fields = fields
+                .named
+                .iter()
+                .map(|field| {
+                    let field_name = field.ident.as_ref().unwrap();
+                    let field = generate_map_from_type(
+                        &field.ty,
+                        functor_param,
+                        &quote!(self.#field_name),
+                        is_try,
+                    )?
+                    .0;
+                    Some(quote!(#field_name: #field))
+                })
+                .collect::<Option<Vec<_>>>()?;
             Some(quote!(#def_name{#(#fields),*}))
         }
         Fields::Unnamed(s) => {
-            let fields = s.unnamed.iter().enumerate().map(|(i, field)| {
-                let i = Index::from(i);
-                Some(generate_map_from_type(&field.ty, functor_param, &quote!(self.#i), is_try)?.0)
-            }).collect::<Option<Vec<_>>>()?;
+            let fields = s
+                .unnamed
+                .iter()
+                .enumerate()
+                .map(|(i, field)| {
+                    let i = Index::from(i);
+                    Some(
+                        generate_map_from_type(&field.ty, functor_param, &quote!(self.#i), is_try)?
+                            .0,
+                    )
+                })
+                .collect::<Option<Vec<_>>>()?;
             Some(quote!(#def_name(#(#fields),*)))
         }
         Fields::Unit => abort_call_site!("Cannot derive `Functor` for Unit Structs."),

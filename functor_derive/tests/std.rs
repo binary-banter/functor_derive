@@ -1,6 +1,6 @@
+use functor_derive::impl_std::{FunctorHashKeys, FunctorHashSet};
 use functor_derive::{Functor, FunctorValues};
 use std::collections::{HashMap, HashSet};
-use functor_derive::impl_std::{FunctorHashKeys, FunctorHashSet};
 
 fn map(value: usize) -> u64 {
     value as u64

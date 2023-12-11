@@ -13,11 +13,16 @@ pub fn generate_map_from_type(
     let stream = match typ {
         Type::Path(path) => return generate_map_from_path(path, param, field, is_try),
         Type::Tuple(tuple) => {
-            let positions = tuple.elems.iter().enumerate().map(|(i, x)| {
-                let i = Index::from(i);
-                let field = generate_map_from_type(x, param, &quote!(#field.#i), is_try)?.0;
-                Some(quote!(#field,))
-            }).collect::<Option<Vec<_>>>()?;
+            let positions = tuple
+                .elems
+                .iter()
+                .enumerate()
+                .map(|(i, x)| {
+                    let i = Index::from(i);
+                    let field = generate_map_from_type(x, param, &quote!(#field.#i), is_try)?.0;
+                    Some(quote!(#field,))
+                })
+                .collect::<Option<Vec<_>>>()?;
             quote!((#(#positions)*))
         }
         Type::Array(array) => {
@@ -76,7 +81,7 @@ fn generate_map_from_path(
             } else {
                 return Some((quote!(__f(#field)), true));
             }
-        },
+        }
         _ => {}
     }
 

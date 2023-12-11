@@ -1,5 +1,5 @@
-use std::convert::{TryFrom, TryInto};
 use functor_derive::Functor;
+use std::convert::{TryFrom, TryInto};
 
 #[derive(Debug, PartialEq)]
 enum T1 {

@@ -1,21 +1,24 @@
 #![doc = include_str!("../README.md")]
 
-use once_cell::unsync::Lazy;
 use crate::generate_fmap_body::generate_fmap_body;
+use crate::map::map_where;
 use crate::parse_attribute::parse_attribute;
+use once_cell::unsync::Lazy;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::proc_macro_error;
 use quote::{format_ident, quote};
 use syn::{
     parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
-    PathSegment, Type, TypePath,
+    PathSegment, Type, TypePath, WhereClause,
 };
 
 mod generate_fmap_body;
 mod generate_map;
+mod map;
 mod parse_attribute;
 
-const LINTS: Lazy<TokenStream> = Lazy::new(|| quote! {
+const LINTS: Lazy<TokenStream> = Lazy::new(|| {
+    quote! {
         #[allow(absolute_paths_not_starting_with_crate)]
         #[allow(bare_trait_objects)]
         #[allow(deprecated)]
@@ -24,10 +27,10 @@ const LINTS: Lazy<TokenStream> = Lazy::new(|| quote! {
         #[allow(non_camel_case_types)]
         #[allow(trivial_bounds)]
         #[allow(unused_qualifications)]
-        #[allow(clippy::disallowed_method)]
-        #[allow(clippy::disallowed_type)]
+        #[allow(clippy::allow)]
         #[automatically_derived]
-    });
+    }
+});
 
 #[proc_macro_derive(Functor, attributes(functor))]
 #[proc_macro_error]
@@ -41,14 +44,17 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let attribute = parse_attribute(&input);
 
     // Get the generic parameters leaving only the bounds and attributes.
-    let source_params = input.generics.params.iter().map(|param| {
-        match param {
+    let source_params = input
+        .generics
+        .params
+        .iter()
+        .map(|param| match param {
             GenericParam::Type(param) => {
                 let mut param = param.clone();
                 param.eq_token = None;
                 param.default = None;
                 GenericParam::Type(param)
-            },
+            }
             GenericParam::Const(param) => {
                 let mut param = param.clone();
                 param.eq_token = None;
@@ -56,8 +62,8 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 GenericParam::Const(param)
             }
             param => param.clone(),
-        }
-    }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     // Maps the generic parameters to generic arguments for the source.
     let source_args = source_params
@@ -77,14 +83,19 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .collect::<Vec<_>>();
 
     let mut tokens = TokenStream::new();
+
+    // Include default Functor implementation.
     if let Some(default) = attribute.default {
         tokens.extend(generate_default_impl(
             &default,
             &def_name,
             &source_params,
             &source_args,
+            &input.generics.where_clause,
         ));
     }
+
+    // Include all named implementations.
     for (param, name) in attribute.name_map {
         tokens.extend(generate_named_impl(
             &param,
@@ -92,14 +103,19 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             &def_name,
             &source_params,
             &source_args,
+            &input.generics.where_clause,
         ));
     }
+
+    // Include internal implementations.
     tokens.extend(generate_refs_impl(
         &input.data,
         &def_name,
         &source_params,
         &source_args,
+        &input.generics.where_clause,
     ));
+
     tokens.into()
 }
 
@@ -120,6 +136,7 @@ fn generate_refs_impl(
     def_name: &Ident,
     source_params: &Vec<GenericParam>,
     source_args: &Vec<GenericArgument>,
+    where_clause: &Option<WhereClause>,
 ) -> TokenStream {
     let mut tokens = TokenStream::new();
     for param in source_params {
@@ -132,10 +149,12 @@ fn generate_refs_impl(
             let try_fmap_ident = format_ident!("__try_fmap_{param_idx_types}_ref");
 
             // Generate body of the `fmap` implementation.
-            let Some(fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, false) else {
+            let Some(fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, false)
+            else {
                 continue;
             };
-            let Some(try_fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, true) else {
+            let Some(try_fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, true)
+            else {
                 continue;
             };
 
@@ -152,10 +171,15 @@ fn generate_refs_impl(
             let bounds = &t.bounds;
             let lints = &*LINTS;
 
-            if bounds.is_empty() {
+            let where_clause_fn = where_clause
+                .as_ref()
+                .map(|where_clause| map_where(&where_clause, &param_ident))
+                .flatten();
+
+            if bounds.is_empty() && where_clause_fn.is_none() {
                 tokens.extend(quote!(
                     #lints
-                    impl<#(#source_params),*> ::functor_derive::#functor_trait_ident<#param_ident> for #def_name<#(#source_args),*> {
+                    impl<#(#source_params),*> ::functor_derive::#functor_trait_ident<#param_ident> for #def_name<#(#source_args),*> #where_clause {
                         type Target<__B> = #def_name<#(#target_args),*>;
 
                         fn #fmap_ident<__B>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
@@ -172,13 +196,13 @@ fn generate_refs_impl(
             } else {
                 tokens.extend(quote!(
                     #lints
-                    impl<#(#source_params),*> #def_name<#(#source_args),*> {
-                        pub fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
+                    impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+                        pub fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> #where_clause_fn {
                             use ::functor_derive::*;
                             #fmap_ref_body
                         }
 
-                        pub fn #try_fmap_ident<__B #bounds_colon #bounds, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                        pub fn #try_fmap_ident<__B #bounds_colon #bounds, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #where_clause_fn {
                             use ::functor_derive::*;
                             Ok(#try_fmap_ref_body)
                         }
@@ -195,6 +219,7 @@ fn generate_default_impl(
     def_name: &Ident,
     source_params: &Vec<GenericParam>,
     source_args: &Vec<GenericArgument>,
+    where_clause: &Option<WhereClause>,
 ) -> TokenStream {
     let (default_idx_total, default_idx_types) = find_index(source_params, param);
 
@@ -215,7 +240,12 @@ fn generate_default_impl(
     let bounds = &t.bounds;
     let lints = &*LINTS;
 
-    if bounds.is_empty() {
+    let where_clause_fn = where_clause
+        .as_ref()
+        .map(|where_clause| map_where(&where_clause, &param))
+        .flatten();
+
+    if bounds.is_empty() && where_clause_fn.is_none() {
         quote!(
             #lints
             impl<#(#source_params),*> ::functor_derive::Functor<#param> for #def_name<#(#source_args),*> {
@@ -235,13 +265,13 @@ fn generate_default_impl(
     } else {
         quote!(
             #lints
-            impl<#(#source_params),*> #def_name<#(#source_args),*> {
-                pub fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+            impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+                pub fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #where_clause_fn {
                     use ::functor_derive::*;
                     self.#default_map(&__f)
                 }
 
-                pub fn try_fmap<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                pub fn try_fmap<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #where_clause_fn {
                     use ::functor_derive::*;
                     self.#default_try_map(&__f)
                 }
@@ -256,6 +286,7 @@ fn generate_named_impl(
     def_name: &Ident,
     source_params: &Vec<GenericParam>,
     source_args: &Vec<GenericArgument>,
+    where_clause: &Option<WhereClause>,
 ) -> TokenStream {
     let (default_idx_total, default_idx_types) = find_index(source_params, param);
 
@@ -279,15 +310,20 @@ fn generate_named_impl(
     let bounds = &t.bounds;
     let lints = &*LINTS;
 
+    let where_clause_fn = where_clause
+        .as_ref()
+        .map(|where_clause| map_where(&where_clause, &param))
+        .flatten();
+
     quote!(
         #lints
-        impl<#(#source_params),*> #def_name<#(#source_args),*> {
-            pub fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+        impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+            pub fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #where_clause_fn {
                 use ::functor_derive::*;
                 self.#fmap(&__f)
             }
 
-            pub fn #try_fmap_name<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+            pub fn #try_fmap_name<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #where_clause_fn {
                 use ::functor_derive::*;
                 self.#fmap_try(&__f)
             }

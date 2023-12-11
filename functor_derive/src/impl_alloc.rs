@@ -1,5 +1,5 @@
-use std::collections::{BinaryHeap, BTreeMap, BTreeSet, LinkedList, VecDeque};
 use crate::{Functor, Functor0, Functor1, FunctorOrdKeys, FunctorValues};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, LinkedList, VecDeque};
 
 impl<A> Functor<A> for Vec<A> {
     type Target<B> = Vec<B>;

@@ -1,8 +1,8 @@
-use functor_derive::Functor;
+use crate::funcmap::{T1, T2};
 use core::marker::PhantomData;
+use functor_derive::Functor;
 use std::cell::{Cell, RefCell, UnsafeCell};
 use std::ops::ControlFlow;
-use crate::funcmap::{T1, T2};
 
 #[test]
 fn field_of_array_type_is_mapped() {

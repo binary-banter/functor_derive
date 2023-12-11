@@ -1,6 +1,9 @@
-use std::{collections::{HashMap, HashSet}, hash::Hash};
-use functor_derive::*;
 use crate::funcmap::{T1, T2};
+use functor_derive::*;
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+};
 
 #[test]
 fn field_of_hash_map_type_is_mapped_over_key() {
