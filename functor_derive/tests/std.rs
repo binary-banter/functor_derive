@@ -1,4 +1,5 @@
-use functor_derive::{Functor, FunctorHashKeys, FunctorHashSet, FunctorValues};
+use functor_derive::impl_std::{FunctorHashKeys, FunctorHashSet};
+use functor_derive::{Functor, FunctorValues};
 use std::collections::{HashMap, HashSet};
 
 fn map(value: usize) -> u64 {

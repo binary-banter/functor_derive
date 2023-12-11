@@ -1,10 +1,15 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, LinkedList, VecDeque};
-use std::hash::Hash;
-use std::marker::PhantomData;
-use std::mem::MaybeUninit;
+pub mod impl_alloc;
+pub mod impl_core;
+pub mod impl_std;
+
+use paste::paste;
 
 // Re-export derive macro.
 pub use functor_derive_lib::*;
+pub use impl_alloc::*;
+#[allow(unused)]
+pub use impl_core::*;
+pub use impl_std::*;
 
 pub trait Functor<A>: Sized {
     type Target<B>;
@@ -14,23 +19,43 @@ pub trait Functor<A>: Sized {
     fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
 }
 
-#[doc(hidden)]
-pub trait Functor0<A>: Sized {
-    type Target<B>;
+#[macro_export]
+macro_rules! functor_n {
+    ($n:expr) => {
+        paste! {
+        #[doc(hidden)]
+        pub trait [<Functor $n>]<A>: Sized {
+            type Target<B>;
 
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
+            fn [<__fmap_ $n _ref>]<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
 
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
+            fn [<__try_fmap_ $n _ref>]<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
+        }
+        }
+    };
 }
 
-#[doc(hidden)]
-pub trait Functor1<A>: Sized {
-    type Target<B>;
-
-    fn __fmap_1_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
-
-    fn __try_fmap_1_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
-}
+functor_n!(0);
+functor_n!(1);
+functor_n!(2);
+functor_n!(3);
+functor_n!(4);
+functor_n!(5);
+functor_n!(6);
+functor_n!(7);
+functor_n!(8);
+functor_n!(9);
+functor_n!(10);
+functor_n!(11);
+functor_n!(12);
+functor_n!(13);
+functor_n!(14);
+functor_n!(15);
+functor_n!(16);
+functor_n!(17);
+functor_n!(18);
+functor_n!(19);
+// please don't use more than 20 generics.
 
 #[doc(hidden)]
 pub trait FunctorValues<A>: Sized {
@@ -39,72 +64,6 @@ pub trait FunctorValues<A>: Sized {
     fn fmap_values<B>(self, f: impl Fn(A) -> B) -> Self::Target<B>;
 
     fn try_fmap_values<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E>;
-}
-
-#[doc(hidden)]
-pub trait FunctorHashKeys<A: Hash + Eq>: Sized {
-    type Target<B: Hash + Eq>;
-
-    fn fmap_keys<B: Hash + Eq>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap_keys<B: Hash + Eq, E>(
-        self,
-        f: impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-
-    fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
-
-    fn __try_fmap_0_ref<B: Hash + Eq, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E>;
-}
-
-#[doc(hidden)]
-pub trait FunctorHashSet<A: Hash + Eq>: Sized {
-    type Target<B: Hash + Eq>;
-
-    fn fmap<B: Hash + Eq>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B: Hash + Eq, E>(
-        self,
-        f: impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-
-    fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
-
-    fn __try_fmap_0_ref<B: Hash + Eq, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E>;
-}
-
-#[doc(hidden)]
-pub trait FunctorBTreeSet<A: Ord>: Sized {
-    type Target<B: Ord>;
-
-    fn fmap<B: Ord>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B: Ord, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-
-    fn __fmap_0_ref<B: Ord>(self, f: &impl Fn(A) -> B) -> Self::Target<B>;
-
-    fn __try_fmap_0_ref<B: Ord, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E>;
 }
 
 #[doc(hidden)]
@@ -127,371 +86,21 @@ pub trait FunctorOrdKeys<A: Ord>: Sized {
     ) -> Result<Self::Target<B>, E>;
 }
 
-impl<A> Functor<A> for Option<A> {
-    type Target<B> = Option<B>;
+#[macro_export]
+macro_rules! functor_impl {
+    ($typ:ident) => {
+        paste::paste! {
+            impl<A> Functor<A> for $typ<A> {
+                type Target<B> = $typ<B>;
 
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
+                fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+                    self.[<__fmap_0_ref>](&f)
+                }
 
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A> Functor0<A> for Option<A> {
-    type Target<B> = Option<B>;
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.map(f)
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.map(f).transpose()
-    }
-}
-
-impl<A, E> Functor<A> for Result<A, E> {
-    type Target<B> = Result<B, E>;
-
-    /// By default Results map their Ok generic.
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E2>(self, f: impl Fn(A) -> Result<B, E2>) -> Result<Self::Target<B>, E2> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A, E> Functor0<A> for Result<A, E> {
-    type Target<B> = Result<B, E>;
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.map(f)
-    }
-
-    fn __try_fmap_0_ref<B, E2>(
-        self,
-        f: &impl Fn(A) -> Result<B, E2>,
-    ) -> Result<Self::Target<B>, E2> {
-        match self.map(f) {
-            Ok(Ok(v)) => Ok(Ok(v)),
-            Ok(Err(e)) => Err(e),
-            Err(e) => Ok(Err(e)),
+                fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+                    self.[<__try_fmap_0_ref>](&f)
+                }
+            }
         }
-    }
-}
-
-impl<O, A> Functor1<A> for Result<O, A> {
-    type Target<B> = Result<O, B>;
-
-    fn __fmap_1_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.map_err(f)
-    }
-
-    fn __try_fmap_1_ref<B, E2>(
-        self,
-        f: &impl Fn(A) -> Result<B, E2>,
-    ) -> Result<Self::Target<B>, E2> {
-        match self.map_err(f) {
-            Ok(v) => Ok(Ok(v)),
-            Err(Ok(e)) => Ok(Err(e)),
-            Err(Err(e)) => Err(e),
-        }
-    }
-}
-
-impl<A> Functor<A> for Vec<A> {
-    type Target<B> = Vec<B>;
-
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A> Functor0<A> for Vec<A> {
-    type Target<B> = Vec<B>;
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(f).collect()
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.into_iter().map(f).collect()
-    }
-}
-
-impl<A> Functor<A> for Box<A> {
-    type Target<B> = Box<B>;
-
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A> Functor0<A> for Box<A> {
-    type Target<B> = Box<B>;
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        Box::new(f(*self))
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        f(*self).map(Box::new)
-    }
-}
-
-impl<A> Functor<A> for VecDeque<A> {
-    type Target<B> = VecDeque<B>;
-
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A> Functor0<A> for VecDeque<A> {
-    type Target<B> = VecDeque<B>;
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(f).collect()
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.into_iter().map(f).collect()
-    }
-}
-
-impl<A> Functor<A> for PhantomData<A> {
-    type Target<B> = PhantomData<B>;
-
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A> Functor0<A> for PhantomData<A> {
-    type Target<B> = PhantomData<B>;
-
-    fn __fmap_0_ref<B>(self, _f: &impl Fn(A) -> B) -> Self::Target<B> {
-        PhantomData
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, _f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        Ok(PhantomData)
-    }
-}
-
-impl<A> Functor<A> for LinkedList<A> {
-    type Target<B> = LinkedList<B>;
-
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<A> Functor0<A> for LinkedList<A> {
-    type Target<B> = LinkedList<B>;
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(f).collect()
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.into_iter().map(f).collect()
-    }
-}
-
-impl<A: Eq + Hash> FunctorHashSet<A> for HashSet<A> {
-    type Target<B: Hash + Eq> = HashSet<B>;
-
-    fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(f).collect()
-    }
-
-    fn __try_fmap_0_ref<B: Hash + Eq, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
-        self.into_iter().map(f).collect()
-    }
-}
-
-impl<K: Eq + Hash, A> Functor<A> for HashMap<K, A> {
-    type Target<B> = HashMap<K, B>;
-
-    /// By default HashMaps map their Value generic.
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_1_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_1_ref(&f)
-    }
-}
-
-impl<A: Eq + Hash, V> FunctorHashKeys<A> for HashMap<A, V> {
-    type Target<B: Hash + Eq> = HashMap<B, V>;
-
-    fn __fmap_0_ref<B: Hash + Eq>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(|(k, v)| (f(k), v)).collect()
-    }
-
-    fn __try_fmap_0_ref<B: Hash + Eq, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
-        self.into_iter()
-            .map(|(k, v)| f(k).map(|k| (k, v)))
-            .collect()
-    }
-}
-
-impl<K: Eq + Hash, A> FunctorValues<A> for HashMap<K, A> {
-    type Target<B> = HashMap<K, B>;
-
-    fn fmap_values<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_1_ref(&f)
-    }
-
-    fn try_fmap_values<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_1_ref(&f)
-    }
-}
-
-impl<K: Eq + Hash, A> Functor1<A> for HashMap<K, A> {
-    type Target<B> = HashMap<K, B>;
-
-    fn __fmap_1_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(|(k, v)| (k, f(v))).collect()
-    }
-
-    fn __try_fmap_1_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.into_iter()
-            .map(|(k, v)| f(v).map(|v| (k, v)))
-            .collect()
-    }
-}
-
-impl<K: Ord, A> Functor<A> for BTreeMap<K, A> {
-    type Target<B> = BTreeMap<K, B>;
-
-    /// By default BTreeMaps map their Value generic.
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_1_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_1_ref(&f)
-    }
-}
-
-impl<A: Ord, V> FunctorOrdKeys<A> for BTreeMap<A, V> {
-    type Target<B: Ord> = BTreeMap<B, V>;
-
-    fn __fmap_0_ref<B: Ord>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(|(k, v)| (f(k), v)).collect()
-    }
-
-    fn __try_fmap_0_ref<B: Ord, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
-        self.into_iter()
-            .map(|(k, v)| f(k).map(|k| (k, v)))
-            .collect()
-    }
-}
-
-impl<K: Ord, A> FunctorValues<A> for BTreeMap<K, A> {
-    type Target<B> = BTreeMap<K, B>;
-
-    fn fmap_values<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_1_ref(&f)
-    }
-
-    fn try_fmap_values<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_1_ref(&f)
-    }
-}
-
-impl<K: Ord, A> Functor1<A> for BTreeMap<K, A> {
-    type Target<B> = BTreeMap<K, B>;
-
-    fn __fmap_1_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(|(k, v)| (k, f(v))).collect()
-    }
-
-    fn __try_fmap_1_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.into_iter()
-            .map(|(k, v)| f(v).map(|v| (k, v)))
-            .collect()
-    }
-}
-
-impl<A: Ord> FunctorBTreeSet<A> for BTreeSet<A> {
-    type Target<B: Ord> = BTreeSet<B>;
-
-    fn __fmap_0_ref<B: Ord>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.into_iter().map(f).collect()
-    }
-
-    fn __try_fmap_0_ref<B: Ord, E>(
-        self,
-        f: &impl Fn(A) -> Result<B, E>,
-    ) -> Result<Self::Target<B>, E> {
-        self.into_iter().map(f).collect()
-    }
-}
-
-impl<const N: usize, A> Functor<A> for [A; N] {
-    type Target<B> = [B; N];
-
-    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
-        self.__fmap_0_ref(&f)
-    }
-
-    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        self.__try_fmap_0_ref(&f)
-    }
-}
-
-impl<const N: usize, A> Functor0<A> for [A; N] {
-    type Target<B> = [B; N];
-
-    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
-        self.map(f)
-    }
-
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        // Safety: creates an array of uninits from an uninit array, which is sound since the memory layout is unchanged.
-        let mut data: [MaybeUninit<B>; N] = unsafe { MaybeUninit::uninit().assume_init() };
-
-        for (i, v) in self.into_iter().enumerate() {
-            data[i] = MaybeUninit::new(f(v)?);
-        }
-
-        // Safety: We just initialized all elements of the array. We made `data` the same size as `self` so this guaranteed.
-        Ok(data.map(|v| unsafe { v.assume_init() }))
-    }
+    };
 }
