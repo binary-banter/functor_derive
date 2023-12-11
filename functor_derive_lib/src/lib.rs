@@ -1,22 +1,21 @@
 #![doc = include_str!("../README.md")]
 
 use crate::generate_fmap_body::generate_fmap_body;
-use crate::map::map_where;
+use crate::map::{map_path, map_where};
 use crate::parse_attribute::parse_attribute;
 use once_cell::unsync::Lazy;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::proc_macro_error;
 use quote::{format_ident, quote};
-use syn::{
-    parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
-    PathSegment, Type, TypePath, WhereClause,
-};
+use syn::{parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path, PathSegment, Type, TypePath, WhereClause, WherePredicate, TypeParamBound, PredicateType};
+use syn::token::Colon;
 
 mod generate_fmap_body;
 mod generate_map;
 mod map;
 mod parse_attribute;
 
+// Lints to disable inside of the generated code. This list may not be exhaustive.
 const LINTS: Lazy<TokenStream> = Lazy::new(|| {
     quote! {
         #[allow(absolute_paths_not_starting_with_crate)]
@@ -162,19 +161,24 @@ fn generate_refs_impl(
                 path: Path::from(PathSegment::from(format_ident!("__B"))),
             }));
 
-            let GenericParam::Type(t) = &source_params[param_idx] else {
-                unreachable!()
-            };
-            let bounds_colon = &t.colon_token;
-            let bounds = &t.bounds;
             let lints = &*LINTS;
 
-            let where_clause_fn = where_clause
-                .as_ref()
-                .map(|where_clause| map_where(&where_clause, &param_ident))
-                .flatten();
+            if let Some(fn_where_clause) = create_fn_where_clause(where_clause, source_params, &param_ident) {
+                tokens.extend(quote!(
+                    #lints
+                    impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+                        pub fn #fmap_ident<__B>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause {
+                            use ::functor_derive::*;
+                            #fmap_ref_body
+                        }
 
-            if bounds.is_empty() && where_clause_fn.is_none() {
+                        pub fn #try_fmap_ident<__B, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause {
+                            use ::functor_derive::*;
+                            Ok(#try_fmap_ref_body)
+                        }
+                    }
+                ))
+            } else {
                 tokens.extend(quote!(
                     #lints
                     impl<#(#source_params),*> ::functor_derive::#functor_trait_ident<#param_ident> for #def_name<#(#source_args),*> #where_clause {
@@ -186,21 +190,6 @@ fn generate_refs_impl(
                         }
 
                         fn #try_fmap_ident<__B, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                            use ::functor_derive::*;
-                            Ok(#try_fmap_ref_body)
-                        }
-                    }
-                ))
-            } else {
-                tokens.extend(quote!(
-                    #lints
-                    impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
-                        pub fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> #where_clause_fn {
-                            use ::functor_derive::*;
-                            #fmap_ref_body
-                        }
-
-                        pub fn #try_fmap_ident<__B #bounds_colon #bounds, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #where_clause_fn {
                             use ::functor_derive::*;
                             Ok(#try_fmap_ref_body)
                         }
@@ -231,19 +220,24 @@ fn generate_default_impl(
     let default_map = format_ident!("__fmap_{default_idx}_ref");
     let default_try_map = format_ident!("__try_fmap_{default_idx}_ref");
 
-    let GenericParam::Type(t) = &source_params[default_idx] else {
-        unreachable!()
-    };
-    let bounds_colon = &t.colon_token;
-    let bounds = &t.bounds;
     let lints = &*LINTS;
 
-    let where_clause_fn = where_clause
-        .as_ref()
-        .map(|where_clause| map_where(&where_clause, &param))
-        .flatten();
+    if let Some(fn_where_clause) = create_fn_where_clause(where_clause, source_params, &param) {
+        quote!(
+            #lints
+            impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+                pub fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause {
+                    use ::functor_derive::*;
+                    self.#default_map(&__f)
+                }
 
-    if bounds.is_empty() && where_clause_fn.is_none() {
+                pub fn try_fmap<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause {
+                    use ::functor_derive::*;
+                    self.#default_try_map(&__f)
+                }
+            }
+        )
+    } else {
         quote!(
             #lints
             impl<#(#source_params),*> ::functor_derive::Functor<#param> for #def_name<#(#source_args),*> {
@@ -255,21 +249,6 @@ fn generate_default_impl(
                 }
 
                 fn try_fmap<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
-                    use ::functor_derive::*;
-                    self.#default_try_map(&__f)
-                }
-            }
-        )
-    } else {
-        quote!(
-            #lints
-            impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
-                pub fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #where_clause_fn {
-                    use ::functor_derive::*;
-                    self.#default_map(&__f)
-                }
-
-                pub fn try_fmap<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #where_clause_fn {
                     use ::functor_derive::*;
                     self.#default_try_map(&__f)
                 }
@@ -301,30 +280,70 @@ fn generate_named_impl(
     let fmap = format_ident!("__fmap_{default_idx}_ref");
     let fmap_try = format_ident!("__try_fmap_{default_idx}_ref");
 
-    let GenericParam::Type(t) = &source_params[default_idx] else {
-        unreachable!()
-    };
-    let bounds_colon = &t.colon_token;
-    let bounds = &t.bounds;
     let lints = &*LINTS;
 
-    let where_clause_fn = where_clause
-        .as_ref()
-        .map(|where_clause| map_where(&where_clause, &param))
-        .flatten();
+    let fn_where_clause = create_fn_where_clause(where_clause, source_params, param);
 
     quote!(
         #lints
         impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
-            pub fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #where_clause_fn {
+            pub fn #fmap_name<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause {
                 use ::functor_derive::*;
                 self.#fmap(&__f)
             }
 
-            pub fn #try_fmap_name<__B #bounds_colon #bounds, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #where_clause_fn {
+            pub fn #try_fmap_name<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause {
                 use ::functor_derive::*;
                 self.#fmap_try(&__f)
             }
         }
     )
+}
+
+fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Vec<GenericParam>, param: &Ident) -> Option<WhereClause> {
+    let mut predicates = where_clause
+        .iter()
+        .flat_map(|where_clause| map_where(&where_clause, &param))
+        .flat_map(|where_clause| where_clause.predicates)
+        .collect::<Vec<_>>();
+
+    for source_param in source_params {
+        if let GenericParam::Type(typ) = source_param {
+            let mut bounds = typ.bounds.clone();
+            if bounds.is_empty() { continue };
+            for bound in bounds.iter_mut() {
+                if let TypeParamBound::Trait(trt) = bound {
+                    map_path(&mut trt.path, &param, &mut false);
+                }
+            }
+
+            predicates.push(WherePredicate::Type(PredicateType {
+                lifetimes: None,
+                bounded_ty: Type::Path(TypePath {
+                    qself: None,
+                    path: Path { leading_colon: None, segments: [
+                        PathSegment {
+                            ident: if &typ.ident == param {
+                                format_ident!("__B")
+                            } else {
+                                typ.ident.clone()
+                            },
+                            arguments: Default::default(),
+                        }
+                    ].into_iter().collect() },
+                }),
+                colon_token: Colon::default(),
+                bounds,
+            }))
+        }
+    }
+
+    if predicates.is_empty() {
+        None
+    } else {
+        Some(WhereClause {
+            where_token: Default::default(),
+            predicates: predicates.into_iter().collect(),
+        })
+    }
 }

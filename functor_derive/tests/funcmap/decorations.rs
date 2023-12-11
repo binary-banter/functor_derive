@@ -74,55 +74,55 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
     assert_eq!(dst, Test(T2, T1));
 }
 
-// todo
-// #[test]
-// fn impl_is_restricted_to_self_dependent_trait_bounds_on_generics_of_original_type() {
-//     trait TestTrait<T> {
-//         type Assoc;
-//     }
-//
-//     impl<S> TestTrait<S> for T1 {
-//         type Assoc = S;
-//     }
-//
-//     impl<S> TestTrait<S> for T2 {
-//         type Assoc = S;
-//     }
-//
-//     // derived impl is supposed to have the corresponding trait bounds
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<S: TestTrait<S, Assoc = S>, T: TestTrait<T, Assoc = T>>(S, T);
-//
-//     let src = Test(T1, T1);
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, T1));
-// }
-//
-// #[test]
-// fn impl_is_restricted_to_cross_dependent_trait_bounds_on_generics_of_original_type() {
-//     trait TestTrait<T> {
-//         type Assoc;
-//     }
-//
-//     impl<S> TestTrait<S> for T1 {
-//         type Assoc = S;
-//     }
-//
-//     impl<S> TestTrait<S> for T2 {
-//         type Assoc = S;
-//     }
-//
-//     // derived impl is supposed to have the corresponding trait bounds
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<S: TestTrait<T, Assoc = T>, T: TestTrait<S, Assoc = S>>(S, T);
-//
-//     let src = Test(T1, T1);
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, T1));
-// }
+#[test]
+fn impl_is_restricted_to_self_dependent_trait_bounds_on_generics_of_original_type() {
+    trait TestTrait<T> {
+        type Assoc;
+    }
 
+    impl<S> TestTrait<S> for T1 {
+        type Assoc = S;
+    }
+
+    impl<S> TestTrait<S> for T2 {
+        type Assoc = S;
+    }
+
+    // derived impl is supposed to have the corresponding trait bounds
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<S: TestTrait<S, Assoc = S>, T: TestTrait<T, Assoc = T>>(S, T);
+
+    let src = Test(T1, T1);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, T1));
+}
+
+#[test]
+fn impl_is_restricted_to_cross_dependent_trait_bounds_on_generics_of_original_type() {
+    trait TestTrait<T> {
+        type Assoc;
+    }
+
+    impl<S> TestTrait<S> for T1 {
+        type Assoc = S;
+    }
+
+    impl<S> TestTrait<S> for T2 {
+        type Assoc = S;
+    }
+
+    // derived impl is supposed to have the corresponding trait bounds
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<S: TestTrait<T, Assoc = T>, T: TestTrait<S, Assoc = S>>(S, T);
+
+    let src = Test(T1, T1);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, T1));
+}
+
+// todo
 // #[test]
 // fn impl_is_restricted_to_maybe_sized_bound_on_unmapped_generic_of_original_type() {
 //     trait TestTrait<T: ?Sized> {}
@@ -140,97 +140,98 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //     struct Test<S: ?Sized, T: ?Sized + TestTrait<S>>(PhantomData<S>, PhantomData<T>);
 //
 //     let src = Test::<T1, Unsized>(PhantomData, PhantomData);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_: T1| T2);
+//     let dst = src.fmap(|_: T1| T2);
 //
 //     assert_eq!(dst, Test(PhantomData, PhantomData));
 // }
-//
-// #[test]
-// fn impl_is_restricted_to_lifetime_bounds_on_generics_of_original_type() {
-//     // derived impl is supposed to have the corresponding lifetime bounds
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<'a, T: 'a>(T, PhantomData<&'a ()>);
-//
-//     let src = Test(T1, PhantomData);
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, PhantomData));
-// }
-//
-// #[test]
-// fn impl_is_restricted_to_trait_bounds_in_where_clause_on_original_type() {
-//     trait TestTrait {}
-//
-//     impl TestTrait for T1 {}
-//     impl TestTrait for T2 {}
-//
-//     // derived impl is supposed to have the corresponding where predicates
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<S, T>(S, T)
-//         where
-//             S: TestTrait,
-//             T: TestTrait;
-//
-//     let src = Test(T1, T1);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, T1));
-// }
-//
-// #[test]
-// fn impl_is_restricted_to_self_dependent_trait_bounds_in_where_clause_on_original_type() {
-//     trait TestTrait<T> {
-//         type Assoc;
-//     }
-//
-//     impl<S> TestTrait<S> for T1 {
-//         type Assoc = S;
-//     }
-//
-//     impl<S> TestTrait<S> for T2 {
-//         type Assoc = S;
-//     }
-//
-//     // derived impl is supposed to have the corresponding where predicates
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<S, T>(S, T)
-//         where
-//             S: TestTrait<S, Assoc = S>,
-//             T: TestTrait<T, Assoc = T>;
-//
-//     let src = Test(T1, T1);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, T1));
-// }
-//
-// #[test]
-// fn impl_is_restricted_to_cross_dependent_trait_bounds_in_where_clause_on_original_type() {
-//     trait TestTrait<T> {
-//         type Assoc;
-//     }
-//
-//     impl<S> TestTrait<S> for T1 {
-//         type Assoc = S;
-//     }
-//
-//     impl<S> TestTrait<S> for T2 {
-//         type Assoc = S;
-//     }
-//
-//     // derived impl is supposed to have the corresponding where predicates
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<S, T>(S, T)
-//         where
-//             S: TestTrait<T, Assoc = T>,
-//             T: TestTrait<S, Assoc = S>;
-//
-//     let src = Test(T1, T1);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, T1));
-// }
-//
+
+#[test]
+fn impl_is_restricted_to_lifetime_bounds_on_generics_of_original_type() {
+    // derived impl is supposed to have the corresponding lifetime bounds
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<'a, T: 'a>(T, PhantomData<&'a ()>);
+
+    let src = Test(T1, PhantomData);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, PhantomData));
+}
+
+#[test]
+fn impl_is_restricted_to_trait_bounds_in_where_clause_on_original_type() {
+    trait TestTrait {}
+
+    impl TestTrait for T1 {}
+    impl TestTrait for T2 {}
+
+    // derived impl is supposed to have the corresponding where predicates
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<S, T>(S, T)
+        where
+            S: TestTrait,
+            T: TestTrait;
+
+    let src = Test(T1, T1);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, T1));
+}
+
+#[test]
+fn impl_is_restricted_to_self_dependent_trait_bounds_in_where_clause_on_original_type() {
+    trait TestTrait<T> {
+        type Assoc;
+    }
+
+    impl<S> TestTrait<S> for T1 {
+        type Assoc = S;
+    }
+
+    impl<S> TestTrait<S> for T2 {
+        type Assoc = S;
+    }
+
+    // derived impl is supposed to have the corresponding where predicates
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<S, T>(S, T)
+        where
+            S: TestTrait<S, Assoc = S>,
+            T: TestTrait<T, Assoc = T>;
+
+    let src = Test(T1, T1);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, T1));
+}
+
+#[test]
+fn impl_is_restricted_to_cross_dependent_trait_bounds_in_where_clause_on_original_type() {
+    trait TestTrait<T> {
+        type Assoc;
+    }
+
+    impl<S> TestTrait<S> for T1 {
+        type Assoc = S;
+    }
+
+    impl<S> TestTrait<S> for T2 {
+        type Assoc = S;
+    }
+
+    // derived impl is supposed to have the corresponding where predicates
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<S, T>(S, T)
+        where
+            S: TestTrait<T, Assoc = T>,
+            T: TestTrait<S, Assoc = S>;
+
+    let src = Test(T1, T1);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, T1));
+}
+
+// todo
 // #[test]
 // fn impl_is_restricted_to_arbitrary_trait_bounds_in_where_clause_on_original_type() {
 //     trait TestTrait<T> {
@@ -254,11 +255,12 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //             <<S as TestTrait<T>>::Assoc as TestTrait<S>>::Assoc: TestTrait<T>;
 //
 //     let src = Test(T1, T1);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_| T2);
+//     let dst = src.fmap(|_| T2);
 //
 //     assert_eq!(dst, Test(T2, T1));
 // }
-//
+
+// todo
 // #[test]
 // fn impl_is_restricted_to_trait_bounds_with_bound_lifetimes_in_where_clause_on_original_type() {
 //     trait TestTrait<'a> {}
@@ -273,11 +275,12 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //                 for<'a> T: TestTrait<'a>;
 //
 //     let src = Test(T1, T1);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_| T2);
+//     let dst = src.fmap(|_| T2);
 //
 //     assert_eq!(dst, Test(T2, T1));
 // }
-//
+
+// todo
 // #[test]
 // fn impl_is_restricted_to_maybe_sized_bound_on_unmapped_generic_in_where_clause_of_original_type() {
 //     trait TestTrait<T: ?Sized> {}
@@ -298,25 +301,26 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //             T: ?Sized + TestTrait<S>;
 //
 //     let src = Test::<T1, Unsized>(PhantomData, PhantomData);
-//     let dst = src.fmap::<TypeParam<0>, _>(|_: T1| T2);
+//     let dst = src.fmap(|_: T1| T2);
 //
 //     assert_eq!(dst, Test(PhantomData, PhantomData));
 // }
-//
-// #[test]
-// fn impl_is_restricted_to_lifetime_bounds_in_where_clause_of_original_type() {
-//     // derived impl is supposed to have the corresponding where predicates
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<'a, T>(T, PhantomData<&'a ()>)
-//         where
-//             T: 'a;
-//
-//     let src = Test(T1, PhantomData);
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, PhantomData));
-// }
-//
+
+#[test]
+fn impl_is_restricted_to_lifetime_bounds_in_where_clause_of_original_type() {
+    // derived impl is supposed to have the corresponding where predicates
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<'a, T>(T, PhantomData<&'a ()>)
+        where
+            T: 'a;
+
+    let src = Test(T1, PhantomData);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, PhantomData));
+}
+
+// Test is too different from how we construct Functors.
 // #[test]
 // fn impl_is_restricted_to_allow_mapping_of_inner_type() {
 //     #[derive(Debug, PartialEq)]
@@ -344,7 +348,8 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //
 //     assert_eq!(dst, Test(Inner(T2)));
 // }
-//
+
+// todo
 // #[test]
 // fn impl_is_restricted_to_sized_bound_on_unmapped_inner_type() {
 //     trait TestTrait {
@@ -364,7 +369,7 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //     // derived impl for mapping over S is supposed to have `T::Assoc: Sized`, so
 //     // `Test<S, T1>` implements `Functor` but `Test<S, T2>` doesn't
 //     #[derive(Functor, Debug, PartialEq)]
-//     #[Functor(params(S))]
+//     #[functor(S)]
 //     struct Test<S, T>(S, T::Assoc)
 //         where
 //             T: TestTrait;
@@ -374,17 +379,17 @@ fn impl_is_restricted_to_trait_bounds_on_generics_of_original_type() {
 //
 //     assert_eq!(dst, Test(T2, ()));
 // }
-//
-// #[test]
-// fn const_args_with_braces_are_supported() {
-//     #[derive(Debug, PartialEq)]
-//     struct Inner<const N: usize>;
-//
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<T>(T, Inner<{ 41 + 1 }>);
-//
-//     let src = Test(T1, Inner);
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(T2, Inner));
-// }
+
+#[test]
+fn const_args_with_braces_are_supported() {
+    #[derive(Debug, PartialEq)]
+    struct Inner<const N: usize>;
+
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<T>(T, Inner<{ 41 + 1 }>);
+
+    let src = Test(T1, Inner);
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(T2, Inner));
+}
