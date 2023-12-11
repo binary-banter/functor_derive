@@ -278,7 +278,7 @@ fn chained_fmap() {
 
 #[test]
 fn explicit_path() {
-    #[allow(unused_qualifications)]
+    #[allow(unused)]
     #[derive(Functor)]
     struct Test<T>(core::option::Option<T>);
 }

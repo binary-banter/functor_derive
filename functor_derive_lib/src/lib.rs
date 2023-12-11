@@ -3,11 +3,9 @@
 use crate::generate_fmap_body::generate_fmap_body;
 use crate::map::{map_path, map_where};
 use crate::parse_attribute::parse_attribute;
-use once_cell::unsync::Lazy;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::proc_macro_error;
 use quote::{format_ident, quote};
-use syn::punctuated::Punctuated;
 use syn::token::Colon;
 use syn::{
     parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
@@ -19,22 +17,6 @@ mod generate_fmap_body;
 mod generate_map;
 mod map;
 mod parse_attribute;
-
-// Lints to disable inside of the generated code. This list may not be exhaustive.
-const LINTS: Lazy<TokenStream> = Lazy::new(|| {
-    quote! {
-        #[allow(absolute_paths_not_starting_with_crate)]
-        #[allow(bare_trait_objects)]
-        #[allow(deprecated)]
-        #[allow(drop_bounds)]
-        #[allow(dyn_drop)]
-        #[allow(non_camel_case_types)]
-        #[allow(trivial_bounds)]
-        #[allow(unused_qualifications)]
-        #[allow(clippy::allow)]
-        #[automatically_derived]
-    }
-});
 
 #[proc_macro_derive(Functor, attributes(functor))]
 #[proc_macro_error]
@@ -86,6 +68,20 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         })
         .collect::<Vec<_>>();
 
+    // Lints
+    let lints = quote! {
+        #[allow(absolute_paths_not_starting_with_crate)]
+        #[allow(bare_trait_objects)]
+        #[allow(deprecated)]
+        #[allow(drop_bounds)]
+        #[allow(dyn_drop)]
+        #[allow(non_camel_case_types)]
+        #[allow(trivial_bounds)]
+        #[allow(unused_qualifications)]
+        #[allow(clippy::allow)]
+        #[automatically_derived]
+    };
+
     let mut tokens = TokenStream::new();
 
     // Include default Functor implementation.
@@ -96,6 +92,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             &source_params,
             &source_args,
             &input.generics.where_clause,
+            &lints,
         ));
     }
 
@@ -108,6 +105,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             &source_params,
             &source_args,
             &input.generics.where_clause,
+            &lints,
         ));
     }
 
@@ -118,6 +116,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         &source_params,
         &source_args,
         &input.generics.where_clause,
+        &lints,
     ));
 
     tokens.into()
@@ -139,6 +138,7 @@ fn generate_refs_impl(
     source_params: &Vec<GenericParam>,
     source_args: &Vec<GenericArgument>,
     where_clause: &Option<WhereClause>,
+    lints: &TokenStream,
 ) -> TokenStream {
     let mut tokens = TokenStream::new();
     for param in source_params {
@@ -165,8 +165,6 @@ fn generate_refs_impl(
                 qself: None,
                 path: Path::from(PathSegment::from(format_ident!("__B"))),
             }));
-
-            let lints = &*LINTS;
 
             if let Some(fn_where_clause) =
                 create_fn_where_clause(where_clause, source_params, &param_ident)
@@ -214,6 +212,7 @@ fn generate_default_impl(
     source_params: &Vec<GenericParam>,
     source_args: &Vec<GenericArgument>,
     where_clause: &Option<WhereClause>,
+    lints: &TokenStream,
 ) -> TokenStream {
     let default_idx = find_index(source_params, param);
 
@@ -227,9 +226,7 @@ fn generate_default_impl(
     let default_map = format_ident!("__fmap_{default_idx}_ref");
     let default_try_map = format_ident!("__try_fmap_{default_idx}_ref");
 
-    let lints = &*LINTS;
-
-    if let Some(fn_where_clause) = create_fn_where_clause(where_clause, source_params, &param) {
+    if let Some(fn_where_clause) = create_fn_where_clause(where_clause, source_params, param) {
         quote!(
             #lints
             impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
@@ -271,6 +268,7 @@ fn generate_named_impl(
     source_params: &Vec<GenericParam>,
     source_args: &Vec<GenericArgument>,
     where_clause: &Option<WhereClause>,
+    lints: &TokenStream,
 ) -> TokenStream {
     let default_idx = find_index(source_params, param);
 
@@ -286,8 +284,6 @@ fn generate_named_impl(
 
     let fmap = format_ident!("__fmap_{default_idx}_ref");
     let fmap_try = format_ident!("__try_fmap_{default_idx}_ref");
-
-    let lints = &*LINTS;
 
     let fn_where_clause = create_fn_where_clause(where_clause, source_params, param);
 
@@ -314,7 +310,7 @@ fn create_fn_where_clause(
 ) -> Option<WhereClause> {
     let mut predicates = where_clause
         .iter()
-        .flat_map(|where_clause| map_where(&where_clause, &param))
+        .flat_map(|where_clause| map_where(where_clause, param))
         .flat_map(|where_clause| where_clause.predicates)
         .collect::<Vec<_>>();
 
@@ -333,7 +329,7 @@ fn create_fn_where_clause(
                         match trt.modifier {
                             TraitBoundModifier::Maybe(_) => None,
                             TraitBoundModifier::None => {
-                                map_path(&mut trt.path, &param, &mut false);
+                                map_path(&mut trt.path, param, &mut false);
                                 Some(TypeParamBound::Trait(trt))
                             }
                         }

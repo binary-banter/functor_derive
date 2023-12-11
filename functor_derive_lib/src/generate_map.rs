@@ -59,7 +59,7 @@ pub fn generate_map_from_type(
         _ => panic!("Found unknown type"),
     };
 
-    return Some((stream, false));
+    Some((stream, false))
 }
 
 fn generate_map_from_path(
@@ -168,7 +168,7 @@ fn type_contains_param(typ: &Type, param: &Ident) -> bool {
             }
             match &bare_fn.output {
                 ReturnType::Default => false,
-                ReturnType::Type(_, typ) => type_contains_param(&typ, param),
+                ReturnType::Type(_, typ) => type_contains_param(typ, param),
             }
         }
         Type::Reference(reference) => type_contains_param(&reference.elem, param),

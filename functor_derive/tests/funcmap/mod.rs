@@ -7,6 +7,8 @@
 //! * MIT license (LICENSE-MIT or https://opensource.org/licenses/MIT)
 //! at your option.
 
+#![allow(unused)]
+
 mod decorations;
 mod fallible;
 mod hygiene;
