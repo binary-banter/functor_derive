@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, LinkedList, VecDequ
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
+use std::{mem, ptr};
 
 // Re-export derive macro.
 pub use functor_derive_lib::*;
@@ -504,15 +505,75 @@ impl<const N: usize, A> Functor0<A> for [A; N] {
         self.map(f)
     }
 
-    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
-        // Safety: creates an array of uninits from an uninit array, which is sound since the memory layout is unchanged.
-        let mut data: [MaybeUninit<B>; N] = unsafe { MaybeUninit::uninit().assume_init() };
 
-        for (i, v) in self.into_iter().enumerate() {
-            data[i] = MaybeUninit::new(f(v)?);
+    // This implementation was provided by Matthias Stemmler's crate [funcmap_derive](https://crates.io/crates/funcmap_derive) under the MIT license.
+    //
+    // Licensed under either of
+    // * Apache License, Version 2.0 (LICENSE-APACHE or https://www.apache.org/licenses/LICENSE-2.0)
+    // * MIT license (LICENSE-MIT or https://opensource.org/licenses/MIT)
+    // at your option.
+    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        // This guards the target array, making sure the part of it that has already
+        // been filled is dropped if `f` returns `Err(_)` or panics
+        struct Guard<'a, T, const N: usize> {
+            // mutable borrow of the target array
+            array_mut: &'a mut [MaybeUninit<T>; N],
+            // index in ..=N up to which (exclusive) `array_mut` is initialized
+            init_until_idx: usize,
         }
 
-        // Safety: We just initialized all elements of the array. We made `data` the same size as `self` so this guaranteed.
-        Ok(data.map(|v| unsafe { v.assume_init() }))
+        impl<T, const N: usize> Drop for Guard<'_, T, N> {
+            fn drop(&mut self) {
+                // - `self.init_until_idx <= N` is always satisfied
+                // - if `self.init_until_idx == N`, the target array is fully
+                //   initialized and hence the guard must not be dropped
+                debug_assert!(self.init_until_idx < N);
+
+                // SAFETY: as `self.init_until_idx <= N`, the range is within bounds of `self.array_mut`
+                let init_slice = unsafe { self.array_mut.get_unchecked_mut(..self.init_until_idx) };
+
+                // SAFETY: by definition of `init_until_idx`, `init_slice` is fully initialized
+                let init_slice = unsafe { &mut *(init_slice as *mut [MaybeUninit<T>]).cast::<T>() };
+
+                // SAFETY:
+                // - `init_slice` is valid for dropping
+                // - `self.array_mut` (and hence `init_slice`) is not used after `self` is dropped
+                unsafe { ptr::drop_in_place(init_slice) };
+            }
+        }
+
+        // This can be replaced with a call to `MaybeUninit::uninit_array` once that is stabilized
+        //
+        // SAFETY: an array of `MaybeUninit<_>` is always initialized
+        let mut mapped: [MaybeUninit<B>; N] = unsafe { MaybeUninit::uninit().assume_init() };
+
+        let mut guard = Guard {
+            array_mut: &mut mapped,
+            init_until_idx: 0,
+        };
+
+        for value in self {
+            // SAFETY: the iterator yields exactly `N` elements,
+            // so `guard.init_until_idx` has been increased at most `N - 1` times
+            // and hence is within bounds of `guard.array_mut`
+            unsafe {
+                guard
+                    .array_mut
+                    .get_unchecked_mut(guard.init_until_idx)
+                    // if `f` returns `Err(_)` or panics, then `guard` is dropped
+                    .write(f(value)?);
+            }
+
+            guard.init_until_idx += 1;
+        }
+
+        // now `guard.init_until_idx == N` and the target array is fully initialized,
+        // so make sure the guard isn't dropped
+        mem::forget(guard);
+
+        // SAFETY: `mapped` is fully initialized
+        let mapped = unsafe { ptr::addr_of!(mapped).cast::<[B; N]>().read() };
+
+        Ok(mapped)
     }
 }
