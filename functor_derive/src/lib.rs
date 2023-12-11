@@ -4,6 +4,7 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 use std::{mem, ptr};
+use std::cell::{Cell, RefCell, UnsafeCell};
 
 // Re-export derive macro.
 pub use functor_derive_lib::*;
@@ -575,5 +576,77 @@ impl<const N: usize, A> Functor0<A> for [A; N] {
         let mapped = unsafe { ptr::addr_of!(mapped).cast::<[B; N]>().read() };
 
         Ok(mapped)
+    }
+}
+
+impl<A> Functor<A> for Cell<A> {
+    type Target<B> = Cell<B>;
+
+    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        self.__fmap_0_ref(&f)
+    }
+
+    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        self.__try_fmap_0_ref(&f)
+    }
+}
+
+impl<A> Functor0<A> for Cell<A> {
+    type Target<B> = Cell<B>;
+
+    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
+        Cell::new(f(self.into_inner()))
+    }
+
+    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        f(self.into_inner()).map(Cell::new)
+    }
+}
+
+impl<A> Functor<A> for RefCell<A> {
+    type Target<B> = RefCell<B>;
+
+    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        self.__fmap_0_ref(&f)
+    }
+
+    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        self.__try_fmap_0_ref(&f)
+    }
+}
+
+impl<A> Functor0<A> for RefCell<A> {
+    type Target<B> = RefCell<B>;
+
+    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
+        RefCell::new(f(self.into_inner()))
+    }
+
+    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        f(self.into_inner()).map(RefCell::new)
+    }
+}
+
+impl<A> Functor<A> for UnsafeCell<A> {
+    type Target<B> = UnsafeCell<B>;
+
+    fn fmap<B>(self, f: impl Fn(A) -> B) -> Self::Target<B> {
+        self.__fmap_0_ref(&f)
+    }
+
+    fn try_fmap<B, E>(self, f: impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        self.__try_fmap_0_ref(&f)
+    }
+}
+
+impl<A> Functor0<A> for UnsafeCell<A> {
+    type Target<B> = UnsafeCell<B>;
+
+    fn __fmap_0_ref<B>(self, f: &impl Fn(A) -> B) -> Self::Target<B> {
+        UnsafeCell::new(f(self.into_inner()))
+    }
+
+    fn __try_fmap_0_ref<B, E>(self, f: &impl Fn(A) -> Result<B, E>) -> Result<Self::Target<B>, E> {
+        f(self.into_inner()).map(UnsafeCell::new)
     }
 }

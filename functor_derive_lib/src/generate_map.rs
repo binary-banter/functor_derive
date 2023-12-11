@@ -80,11 +80,11 @@ fn generate_map_from_path(
         _ => {}
     }
 
-    let Some(first_segment) = path.path.segments.first() else {
+    let Some(last_segment) = path.path.segments.last() else {
         unreachable!()
     };
 
-    let PathArguments::AngleBracketed(args) = &first_segment.arguments else {
+    let PathArguments::AngleBracketed(args) = &last_segment.arguments else {
         unreachable!()
     };
 

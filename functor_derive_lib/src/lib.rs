@@ -1,4 +1,6 @@
 #![doc = include_str!("../README.md")]
+
+use once_cell::unsync::Lazy;
 use crate::generate_fmap_body::generate_fmap_body;
 use crate::parse_attribute::parse_attribute;
 use proc_macro2::{Ident, TokenStream};
@@ -12,6 +14,20 @@ use syn::{
 mod generate_fmap_body;
 mod generate_map;
 mod parse_attribute;
+
+const LINTS: Lazy<TokenStream> = Lazy::new(|| quote! {
+        #[allow(absolute_paths_not_starting_with_crate)]
+        #[allow(bare_trait_objects)]
+        #[allow(deprecated)]
+        #[allow(drop_bounds)]
+        #[allow(dyn_drop)]
+        #[allow(non_camel_case_types)]
+        #[allow(trivial_bounds)]
+        #[allow(unused_qualifications)]
+        #[allow(clippy::disallowed_method)]
+        #[allow(clippy::disallowed_type)]
+        #[automatically_derived]
+    });
 
 #[proc_macro_derive(Functor, attributes(functor))]
 #[proc_macro_error]
@@ -118,10 +134,11 @@ fn generate_refs_impl(
             };
             let bounds_colon = &t.colon_token;
             let bounds = &t.bounds;
+            let lints = &*LINTS;
 
             if bounds.is_empty() {
                 tokens.extend(quote!(
-                    #[allow(clippy::all)]
+                    #lints
                     impl<#(#source_params),*> ::functor_derive::#functor_trait_ident<#param_ident> for #def_name<#(#source_args),*> {
                         type Target<__B> = #def_name<#(#target_args),*>;
 
@@ -138,7 +155,7 @@ fn generate_refs_impl(
                 ))
             } else {
                 tokens.extend(quote!(
-                    #[allow(clippy::all)]
+                    #lints
                     impl<#(#source_params),*> #def_name<#(#source_args),*> {
                         pub fn #fmap_ident<__B #bounds_colon #bounds>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> {
                             use ::functor_derive::*;
@@ -180,10 +197,11 @@ fn generate_default_impl(
     };
     let bounds_colon = &t.colon_token;
     let bounds = &t.bounds;
+    let lints = &*LINTS;
 
     if bounds.is_empty() {
         quote!(
-            #[allow(clippy::all)]
+            #lints
             impl<#(#source_params),*> ::functor_derive::Functor<#param> for #def_name<#(#source_args),*> {
                 type Target<__B> = #def_name<#(#target_args),*>;
 
@@ -200,7 +218,7 @@ fn generate_default_impl(
         )
     } else {
         quote!(
-            #[allow(clippy::all)]
+            #lints
             impl<#(#source_params),*> #def_name<#(#source_args),*> {
                 pub fn fmap<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
                     use ::functor_derive::*;
@@ -243,9 +261,10 @@ fn generate_named_impl(
     };
     let bounds_colon = &t.colon_token;
     let bounds = &t.bounds;
+    let lints = &*LINTS;
 
     quote!(
-        #[allow(clippy::all)]
+        #lints
         impl<#(#source_params),*> #def_name<#(#source_args),*> {
             pub fn #fmap_name<__B #bounds_colon #bounds>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
                 use ::functor_derive::*;

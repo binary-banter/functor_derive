@@ -10,9 +10,14 @@
 mod opts_params;
 mod single_param;
 mod variants;
+mod opts_crate;
+mod multi_param;
+mod lints;
+mod impl_std;
+mod impl_core;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 struct T1;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 struct T2;

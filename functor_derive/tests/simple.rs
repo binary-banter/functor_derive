@@ -275,3 +275,10 @@ fn chained_fmap() {
         TypeId::of::<StructSimple<u64>>()
     );
 }
+
+#[test]
+fn explicit_path() {
+    #[allow(unused_qualifications)]
+    #[derive(Functor)]
+    struct Test<T>(core::option::Option<T>);
+}
