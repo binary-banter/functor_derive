@@ -1,7 +1,10 @@
 use proc_macro2::Ident;
 use quote::format_ident;
-use syn::{AngleBracketedGenericArguments, GenericArgument, Path, PathArguments, ReturnType, Token, Type, TypeParamBound, WhereClause, WherePredicate};
 use syn::punctuated::Punctuated;
+use syn::{
+    AngleBracketedGenericArguments, GenericArgument, Path, PathArguments, ReturnType, Token, Type,
+    TypeParamBound, WhereClause, WherePredicate,
+};
 
 /// Maps the given parameter `param` in the where clause `where_clause` to `__B`.
 pub fn map_where(where_clause: &WhereClause, param: &Ident) -> Option<WhereClause> {
@@ -23,7 +26,11 @@ pub fn map_where(where_clause: &WhereClause, param: &Ident) -> Option<WhereClaus
 }
 
 /// Maps the given parameter `param` in the type paramameter bounds `bounds` to `__B`.
-pub fn map_type_param_bounds(bounds: &mut Punctuated<TypeParamBound, Token![+]>, param: &Ident, contains_param: &mut bool) {
+pub fn map_type_param_bounds(
+    bounds: &mut Punctuated<TypeParamBound, Token![+]>,
+    param: &Ident,
+    contains_param: &mut bool,
+) {
     for bound in bounds {
         if let TypeParamBound::Trait(trt) = bound {
             map_path(&mut trt.path, param, contains_param);

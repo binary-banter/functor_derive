@@ -166,9 +166,9 @@ fn impl_is_restricted_to_trait_bounds_in_where_clause_on_original_type() {
     // derived impl is supposed to have the corresponding where predicates
     #[derive(Functor, Debug, PartialEq)]
     struct Test<S, T>(S, T)
-        where
-            S: TestTrait,
-            T: TestTrait;
+    where
+        S: TestTrait,
+        T: TestTrait;
 
     let src = Test(T1, T1);
     let dst = src.fmap(|_| T2);
@@ -193,9 +193,9 @@ fn impl_is_restricted_to_self_dependent_trait_bounds_in_where_clause_on_original
     // derived impl is supposed to have the corresponding where predicates
     #[derive(Functor, Debug, PartialEq)]
     struct Test<S, T>(S, T)
-        where
-            S: TestTrait<S, Assoc = S>,
-            T: TestTrait<T, Assoc = T>;
+    where
+        S: TestTrait<S, Assoc = S>,
+        T: TestTrait<T, Assoc = T>;
 
     let src = Test(T1, T1);
     let dst = src.fmap(|_| T2);
@@ -220,9 +220,9 @@ fn impl_is_restricted_to_cross_dependent_trait_bounds_in_where_clause_on_origina
     // derived impl is supposed to have the corresponding where predicates
     #[derive(Functor, Debug, PartialEq)]
     struct Test<S, T>(S, T)
-        where
-            S: TestTrait<T, Assoc = T>,
-            T: TestTrait<S, Assoc = S>;
+    where
+        S: TestTrait<T, Assoc = T>,
+        T: TestTrait<S, Assoc = S>;
 
     let src = Test(T1, T1);
     let dst = src.fmap(|_| T2);
@@ -269,8 +269,8 @@ fn impl_is_restricted_to_trait_bounds_with_bound_lifetimes_in_where_clause_on_or
     // derived impl is supposed to have the corresponding where predicates
     #[derive(Functor, Debug, PartialEq)]
     struct Test<S, T>(S, T)
-        where
-                for<'a> T: TestTrait<'a>;
+    where
+        for<'a> T: TestTrait<'a>;
 
     let src = Test(T1, T1);
     let dst = src.fmap(|_| T2);
@@ -309,8 +309,8 @@ fn impl_is_restricted_to_lifetime_bounds_in_where_clause_of_original_type() {
     // derived impl is supposed to have the corresponding where predicates
     #[derive(Functor, Debug, PartialEq)]
     struct Test<'a, T>(T, PhantomData<&'a ()>)
-        where
-            T: 'a;
+    where
+        T: 'a;
 
     let src = Test(T1, PhantomData);
     let dst = src.fmap(|_| T2);

@@ -51,8 +51,8 @@ fn dyn_drop_lint_is_allowed_on_derived_impl() {
     #[allow(trivial_bounds)]
     #[derive(Functor)]
     struct Test<T>(T)
-        where
-                for<'a> &'a dyn Drop: Copy;
+    where
+        for<'a> &'a dyn Drop: Copy;
 }
 
 // We are pretty confident these tests will succeed - it's just too much of a hassle to implement in our test setup.

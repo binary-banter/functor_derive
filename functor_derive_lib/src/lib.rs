@@ -7,9 +7,13 @@ use once_cell::unsync::Lazy;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::proc_macro_error;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path, PathSegment, Type, TypePath, WhereClause, WherePredicate, TypeParamBound, PredicateType, TraitBoundModifier, TraitBound};
 use syn::punctuated::Punctuated;
 use syn::token::Colon;
+use syn::{
+    parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path,
+    PathSegment, PredicateType, TraitBound, TraitBoundModifier, Type, TypeParamBound, TypePath,
+    WhereClause, WherePredicate,
+};
 
 mod generate_fmap_body;
 mod generate_map;
@@ -164,7 +168,9 @@ fn generate_refs_impl(
 
             let lints = &*LINTS;
 
-            if let Some(fn_where_clause) = create_fn_where_clause(where_clause, source_params, &param_ident) {
+            if let Some(fn_where_clause) =
+                create_fn_where_clause(where_clause, source_params, &param_ident)
+            {
                 tokens.extend(quote!(
                     #lints
                     impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
@@ -209,7 +215,7 @@ fn generate_default_impl(
     source_args: &Vec<GenericArgument>,
     where_clause: &Option<WhereClause>,
 ) -> TokenStream {
-    let default_idx= find_index(source_params, param);
+    let default_idx = find_index(source_params, param);
 
     // Create generic arguments for the target. We use `__B` for the mapped generic.
     let mut target_args = source_args.clone();
@@ -301,7 +307,11 @@ fn generate_named_impl(
     )
 }
 
-fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Vec<GenericParam>, param: &Ident) -> Option<WhereClause> {
+fn create_fn_where_clause(
+    where_clause: &Option<WhereClause>,
+    source_params: &Vec<GenericParam>,
+    param: &Ident,
+) -> Option<WhereClause> {
     let mut predicates = where_clause
         .iter()
         .flat_map(|where_clause| map_where(&where_clause, &param))
@@ -310,36 +320,46 @@ fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Ve
 
     for source_param in source_params {
         if let GenericParam::Type(typ) = source_param {
-            if typ.bounds.is_empty() { continue };
+            if typ.bounds.is_empty() {
+                continue;
+            };
 
-            let bounds = typ.bounds.iter().cloned().flat_map(|bound| {
-                if let TypeParamBound::Trait(mut trt) = bound {
-                    match trt.modifier {
-                        TraitBoundModifier::Maybe(_) => None,
-                        TraitBoundModifier::None => {
-                            map_path(&mut trt.path, &param, &mut false);
-                            Some(TypeParamBound::Trait(trt))
+            let bounds = typ
+                .bounds
+                .iter()
+                .cloned()
+                .flat_map(|bound| {
+                    if let TypeParamBound::Trait(mut trt) = bound {
+                        match trt.modifier {
+                            TraitBoundModifier::Maybe(_) => None,
+                            TraitBoundModifier::None => {
+                                map_path(&mut trt.path, &param, &mut false);
+                                Some(TypeParamBound::Trait(trt))
+                            }
                         }
+                    } else {
+                        Some(bound)
                     }
-                } else {
-                    Some(bound)
-                }
-            }).collect();
+                })
+                .collect();
 
             predicates.push(WherePredicate::Type(PredicateType {
                 lifetimes: None,
                 bounded_ty: Type::Path(TypePath {
                     qself: None,
-                    path: Path { leading_colon: None, segments: [
-                        PathSegment {
+                    path: Path {
+                        leading_colon: None,
+                        segments: [PathSegment {
                             ident: if &typ.ident == param {
                                 format_ident!("__B")
                             } else {
                                 typ.ident.clone()
                             },
                             arguments: Default::default(),
-                        }
-                    ].into_iter().collect() },
+                        }]
+                        .into_iter()
+                        .collect(),
+                    },
                 }),
                 colon_token: Colon::default(),
                 bounds,
@@ -352,27 +372,33 @@ fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Ve
         lifetimes: None,
         bounded_ty: Type::Path(TypePath {
             qself: None,
-            path: Path { leading_colon: None, segments: [
-                PathSegment {
+            path: Path {
+                leading_colon: None,
+                segments: [PathSegment {
                     ident: param.clone(),
                     arguments: Default::default(),
-                }
-            ].into_iter().collect() },
+                }]
+                .into_iter()
+                .collect(),
+            },
         }),
         colon_token: Colon::default(),
-        bounds: [
-            TypeParamBound::Trait(TraitBound {
-                paren_token: None,
-                modifier: TraitBoundModifier::None,
-                lifetimes: None,
-                path: Path { leading_colon: None, segments: [
-                    PathSegment {
-                        ident: format_ident!("Sized"),
-                        arguments: Default::default(),
-                    }
-                ].into_iter().collect() },
-            })
-        ].into_iter().collect(),
+        bounds: [TypeParamBound::Trait(TraitBound {
+            paren_token: None,
+            modifier: TraitBoundModifier::None,
+            lifetimes: None,
+            path: Path {
+                leading_colon: None,
+                segments: [PathSegment {
+                    ident: format_ident!("Sized"),
+                    arguments: Default::default(),
+                }]
+                .into_iter()
+                .collect(),
+            },
+        })]
+        .into_iter()
+        .collect(),
     }));
 
     if predicates.is_empty() {
