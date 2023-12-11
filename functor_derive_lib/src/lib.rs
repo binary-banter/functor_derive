@@ -100,8 +100,12 @@ fn generate_refs_impl(
             let try_fmap_ident = format_ident!("__try_fmap_{param_idx_types}_ref");
 
             // Generate body of the `fmap` implementation.
-            let fmap_ref_body = generate_fmap_body(data, def_name, &param_ident, false);
-            let try_fmap_ref_body = generate_fmap_body(data, def_name, &param_ident, true);
+            let Some(fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, false) else {
+                continue;
+            };
+            let Some(try_fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, true) else {
+                continue;
+            };
 
             let mut target_args = source_args.clone();
             target_args[param_idx_total] = GenericArgument::Type(Type::Path(TypePath {
