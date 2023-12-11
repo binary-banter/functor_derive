@@ -1,6 +1,7 @@
 use functor_derive::Functor;
 use core::marker::PhantomData;
 use std::cell::{Cell, RefCell, UnsafeCell};
+use std::ops::ControlFlow;
 use crate::funcmap::{T1, T2};
 
 #[test]
@@ -37,28 +38,27 @@ fn field_of_cell_type_is_mapped() {
     assert_eq!(dst, Test(Cell::new(T2)));
 }
 
-// todo: not implemented
-// #[test]
-// fn field_of_control_flow_type_is_mapped_over_break() {
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<T>(ControlFlow<T, ()>);
-//
-//     let src = Test(ControlFlow::Break(T1));
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(ControlFlow::Break(T2)));
-// }
-//
-// #[test]
-// fn field_of_control_flow_type_is_mapped_over_continue() {
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<T>(ControlFlow<(), T>);
-//
-//     let src = Test(ControlFlow::Continue(T1));
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(ControlFlow::Continue(T2)));
-// }
+#[test]
+fn field_of_control_flow_type_is_mapped_over_break() {
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<T>(ControlFlow<T, ()>);
+
+    let src = Test(ControlFlow::Break(T1));
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(ControlFlow::Break(T2)));
+}
+
+#[test]
+fn field_of_control_flow_type_is_mapped_over_continue() {
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<T>(ControlFlow<(), T>);
+
+    let src = Test(ControlFlow::Continue(T1));
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(ControlFlow::Continue(T2)));
+}
 
 #[test]
 fn field_of_option_type_is_mapped() {

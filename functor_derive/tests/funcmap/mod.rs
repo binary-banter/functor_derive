@@ -15,9 +15,13 @@ mod multi_param;
 mod lints;
 mod impl_std;
 mod impl_core;
+mod impl_alloc;
+mod hygiene;
+mod fallible;
+mod decorations;
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, PartialOrd, Ord)]
 struct T1;
 
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone, PartialOrd,  Ord)]
 struct T2;

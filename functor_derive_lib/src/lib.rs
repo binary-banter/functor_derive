@@ -40,8 +40,24 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Get the attributes for this invocation. If no attributes are given, the first generic is used as default.
     let attribute = parse_attribute(&input);
 
-    // Get the generic parameters *including* bounds and other attributes.
-    let source_params = input.generics.params.iter().cloned().collect::<Vec<_>>();
+    // Get the generic parameters leaving only the bounds and attributes.
+    let source_params = input.generics.params.iter().map(|param| {
+        match param {
+            GenericParam::Type(param) => {
+                let mut param = param.clone();
+                param.eq_token = None;
+                param.default = None;
+                GenericParam::Type(param)
+            },
+            GenericParam::Const(param) => {
+                let mut param = param.clone();
+                param.eq_token = None;
+                param.default = None;
+                GenericParam::Const(param)
+            }
+            param => param.clone(),
+        }
+    }).collect::<Vec<_>>();
 
     // Maps the generic parameters to generic arguments for the source.
     let source_args = source_params
