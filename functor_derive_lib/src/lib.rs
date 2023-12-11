@@ -7,7 +7,8 @@ use once_cell::unsync::Lazy;
 use proc_macro2::{Ident, TokenStream};
 use proc_macro_error::proc_macro_error;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path, PathSegment, Type, TypePath, WhereClause, WherePredicate, TypeParamBound, PredicateType};
+use syn::{parse_macro_input, Data, DeriveInput, Expr, ExprPath, GenericArgument, GenericParam, Path, PathSegment, Type, TypePath, WhereClause, WherePredicate, TypeParamBound, PredicateType, TraitBoundModifier, TraitBound};
+use syn::punctuated::Punctuated;
 use syn::token::Colon;
 
 mod generate_fmap_body;
@@ -309,13 +310,21 @@ fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Ve
 
     for source_param in source_params {
         if let GenericParam::Type(typ) = source_param {
-            let mut bounds = typ.bounds.clone();
-            if bounds.is_empty() { continue };
-            for bound in bounds.iter_mut() {
-                if let TypeParamBound::Trait(trt) = bound {
-                    map_path(&mut trt.path, &param, &mut false);
+            if typ.bounds.is_empty() { continue };
+
+            let bounds = typ.bounds.iter().cloned().flat_map(|bound| {
+                if let TypeParamBound::Trait(mut trt) = bound {
+                    match trt.modifier {
+                        TraitBoundModifier::Maybe(_) => None,
+                        TraitBoundModifier::None => {
+                            map_path(&mut trt.path, &param, &mut false);
+                            Some(TypeParamBound::Trait(trt))
+                        }
+                    }
+                } else {
+                    Some(bound)
                 }
-            }
+            }).collect();
 
             predicates.push(WherePredicate::Type(PredicateType {
                 lifetimes: None,
@@ -337,6 +346,34 @@ fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Ve
             }))
         }
     }
+
+    // Add param: Sized
+    predicates.push(WherePredicate::Type(PredicateType {
+        lifetimes: None,
+        bounded_ty: Type::Path(TypePath {
+            qself: None,
+            path: Path { leading_colon: None, segments: [
+                PathSegment {
+                    ident: param.clone(),
+                    arguments: Default::default(),
+                }
+            ].into_iter().collect() },
+        }),
+        colon_token: Colon::default(),
+        bounds: [
+            TypeParamBound::Trait(TraitBound {
+                paren_token: None,
+                modifier: TraitBoundModifier::None,
+                lifetimes: None,
+                path: Path { leading_colon: None, segments: [
+                    PathSegment {
+                        ident: format_ident!("Sized"),
+                        arguments: Default::default(),
+                    }
+                ].into_iter().collect() },
+            })
+        ].into_iter().collect(),
+    }));
 
     if predicates.is_empty() {
         None
