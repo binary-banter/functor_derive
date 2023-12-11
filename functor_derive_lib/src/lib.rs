@@ -119,12 +119,10 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     tokens.into()
 }
 
-fn find_index(source_params: &[GenericParam], ident: &Ident) -> (usize, usize) {
-    let mut types = 0;
+fn find_index(source_params: &[GenericParam], ident: &Ident) -> usize {
     for (total, param) in source_params.iter().enumerate() {
         match param {
-            GenericParam::Type(t) if &t.ident == ident => return (total, types),
-            GenericParam::Type(_) | GenericParam::Const(_) => types += 1,
+            GenericParam::Type(t) if &t.ident == ident => return total,
             _ => {}
         }
     }
@@ -142,11 +140,11 @@ fn generate_refs_impl(
     for param in source_params {
         if let GenericParam::Type(t) = param {
             let param_ident = t.ident.clone();
-            let (param_idx_total, param_idx_types) = find_index(source_params, &t.ident);
+            let param_idx = find_index(source_params, &t.ident);
 
-            let functor_trait_ident = format_ident!("Functor{param_idx_types}");
-            let fmap_ident = format_ident!("__fmap_{param_idx_types}_ref");
-            let try_fmap_ident = format_ident!("__try_fmap_{param_idx_types}_ref");
+            let functor_trait_ident = format_ident!("Functor{param_idx}");
+            let fmap_ident = format_ident!("__fmap_{param_idx}_ref");
+            let try_fmap_ident = format_ident!("__try_fmap_{param_idx}_ref");
 
             // Generate body of the `fmap` implementation.
             let Some(fmap_ref_body) = generate_fmap_body(data, def_name, &param_ident, false)
@@ -159,12 +157,12 @@ fn generate_refs_impl(
             };
 
             let mut target_args = source_args.clone();
-            target_args[param_idx_total] = GenericArgument::Type(Type::Path(TypePath {
+            target_args[param_idx] = GenericArgument::Type(Type::Path(TypePath {
                 qself: None,
                 path: Path::from(PathSegment::from(format_ident!("__B"))),
             }));
 
-            let GenericParam::Type(t) = &source_params[param_idx_total] else {
+            let GenericParam::Type(t) = &source_params[param_idx] else {
                 unreachable!()
             };
             let bounds_colon = &t.colon_token;
@@ -221,19 +219,19 @@ fn generate_default_impl(
     source_args: &Vec<GenericArgument>,
     where_clause: &Option<WhereClause>,
 ) -> TokenStream {
-    let (default_idx_total, default_idx_types) = find_index(source_params, param);
+    let default_idx= find_index(source_params, param);
 
     // Create generic arguments for the target. We use `__B` for the mapped generic.
     let mut target_args = source_args.clone();
-    target_args[default_idx_total] = GenericArgument::Type(Type::Path(TypePath {
+    target_args[default_idx] = GenericArgument::Type(Type::Path(TypePath {
         qself: None,
         path: Path::from(PathSegment::from(format_ident!("__B"))),
     }));
 
-    let default_map = format_ident!("__fmap_{default_idx_types}_ref");
-    let default_try_map = format_ident!("__try_fmap_{default_idx_types}_ref");
+    let default_map = format_ident!("__fmap_{default_idx}_ref");
+    let default_try_map = format_ident!("__try_fmap_{default_idx}_ref");
 
-    let GenericParam::Type(t) = &source_params[default_idx_total] else {
+    let GenericParam::Type(t) = &source_params[default_idx] else {
         unreachable!()
     };
     let bounds_colon = &t.colon_token;
@@ -288,11 +286,11 @@ fn generate_named_impl(
     source_args: &Vec<GenericArgument>,
     where_clause: &Option<WhereClause>,
 ) -> TokenStream {
-    let (default_idx_total, default_idx_types) = find_index(source_params, param);
+    let default_idx = find_index(source_params, param);
 
     // Create generic arguments for the target. We use `__B` for the mapped generic.
     let mut target_args = source_args.clone();
-    target_args[default_idx_total] = GenericArgument::Type(Type::Path(TypePath {
+    target_args[default_idx] = GenericArgument::Type(Type::Path(TypePath {
         qself: None,
         path: Path::from(PathSegment::from(format_ident!("__B"))),
     }));
@@ -300,10 +298,10 @@ fn generate_named_impl(
     let fmap_name = format_ident!("fmap_{name}");
     let try_fmap_name = format_ident!("try_fmap_{name}");
 
-    let fmap = format_ident!("__fmap_{default_idx_types}_ref");
-    let fmap_try = format_ident!("__try_fmap_{default_idx_types}_ref");
+    let fmap = format_ident!("__fmap_{default_idx}_ref");
+    let fmap_try = format_ident!("__try_fmap_{default_idx}_ref");
 
-    let GenericParam::Type(t) = &source_params[default_idx_total] else {
+    let GenericParam::Type(t) = &source_params[default_idx] else {
         unreachable!()
     };
     let bounds_colon = &t.colon_token;

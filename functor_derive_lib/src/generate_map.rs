@@ -98,7 +98,6 @@ fn generate_map_from_path(
     let enumerated_type_params = args
         .args
         .iter()
-        .filter(|param| !matches!(param, GenericArgument::Lifetime(_)))
         .enumerate()
         .filter_map(|(idx, arg)| {
             if let GenericArgument::Type(typ) = arg {
