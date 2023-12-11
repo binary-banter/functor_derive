@@ -168,12 +168,12 @@ fn generate_refs_impl(
                 tokens.extend(quote!(
                     #lints
                     impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
-                        pub fn #fmap_ident<__B>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause {
+                        pub fn #fmap_ident<__B>(self, __f: &impl Fn(#param_ident) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause, #param_ident: Sized {
                             use ::functor_derive::*;
                             #fmap_ref_body
                         }
 
-                        pub fn #try_fmap_ident<__B, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause {
+                        pub fn #try_fmap_ident<__B, __E>(self, __f: &impl Fn(#param_ident) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause, #param_ident: Sized {
                             use ::functor_derive::*;
                             Ok(#try_fmap_ref_body)
                         }
@@ -227,12 +227,12 @@ fn generate_default_impl(
         quote!(
             #lints
             impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
-                pub fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause {
+                pub fn fmap<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause, #param: Sized {
                     use ::functor_derive::*;
                     self.#default_map(&__f)
                 }
 
-                pub fn try_fmap<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause {
+                pub fn try_fmap<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause, #param: Sized {
                     use ::functor_derive::*;
                     self.#default_try_map(&__f)
                 }
@@ -283,22 +283,37 @@ fn generate_named_impl(
 
     let lints = &*LINTS;
 
-    let fn_where_clause = create_fn_where_clause(where_clause, source_params, param);
+    if let Some(fn_where_clause) = create_fn_where_clause(where_clause, source_params, &param) {
+        quote!(
+            #lints
+            impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+                pub fn #fmap_name<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause, #param: Sized {
+                    use ::functor_derive::*;
+                    self.#fmap(&__f)
+                }
 
-    quote!(
-        #lints
-        impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
-            pub fn #fmap_name<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> #fn_where_clause {
-                use ::functor_derive::*;
-                self.#fmap(&__f)
+                pub fn #try_fmap_name<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause, #param: Sized {
+                    use ::functor_derive::*;
+                    self.#fmap_try(&__f)
+                }
             }
+        )
+    }else {
+        quote!(
+            #lints
+            impl<#(#source_params),*> #def_name<#(#source_args),*> #where_clause {
+                pub fn #fmap_name<__B>(self, __f: impl Fn(#param) -> __B) -> #def_name<#(#target_args),*> {
+                    use ::functor_derive::*;
+                    self.#fmap(&__f)
+                }
 
-            pub fn #try_fmap_name<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> #fn_where_clause {
-                use ::functor_derive::*;
-                self.#fmap_try(&__f)
-            }
-        }
-    )
+                pub fn #try_fmap_name<__B, __E>(self, __f: impl Fn(#param) -> Result<__B, __E>) -> Result<#def_name<#(#target_args),*>, __E> {
+                    use ::functor_derive::*;
+                    self.#fmap_try(&__f)
+                }
+            })
+    }
+
 }
 
 fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Vec<GenericParam>, param: &Ident) -> Option<WhereClause> {
@@ -312,17 +327,12 @@ fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Ve
         if let GenericParam::Type(typ) = source_param {
             if typ.bounds.is_empty() { continue };
 
-            let bounds = typ.bounds.iter().cloned().flat_map(|bound| {
+            let bounds = typ.bounds.iter().cloned().map(|bound| {
                 if let TypeParamBound::Trait(mut trt) = bound {
-                    match trt.modifier {
-                        TraitBoundModifier::Maybe(_) => None,
-                        TraitBoundModifier::None => {
-                            map_path(&mut trt.path, &param, &mut false);
-                            Some(TypeParamBound::Trait(trt))
-                        }
-                    }
+                    map_path(&mut trt.path, &param, &mut false);
+                    TypeParamBound::Trait(trt)
                 } else {
-                    Some(bound)
+                    bound
                 }
             }).collect();
 
@@ -347,33 +357,17 @@ fn create_fn_where_clause(where_clause: &Option<WhereClause>, source_params: &Ve
         }
     }
 
-    // Add param: Sized
-    predicates.push(WherePredicate::Type(PredicateType {
-        lifetimes: None,
-        bounded_ty: Type::Path(TypePath {
-            qself: None,
-            path: Path { leading_colon: None, segments: [
-                PathSegment {
-                    ident: param.clone(),
-                    arguments: Default::default(),
-                }
-            ].into_iter().collect() },
-        }),
-        colon_token: Colon::default(),
-        bounds: [
-            TypeParamBound::Trait(TraitBound {
-                paren_token: None,
-                modifier: TraitBoundModifier::None,
-                lifetimes: None,
-                path: Path { leading_colon: None, segments: [
-                    PathSegment {
-                        ident: format_ident!("Sized"),
-                        arguments: Default::default(),
-                    }
-                ].into_iter().collect() },
-            })
-        ].into_iter().collect(),
-    }));
+    // for predicate in &mut predicates {
+    //     if let WherePredicate::Type(typ) = predicate {
+    //         // todo check if this is actually operating on something that contains the mapped parameter.
+    //
+    //         for bound in &mut typ.bounds {
+    //             if let TypeParamBound::Trait(trt) = bound {
+    //                 trt.modifier = TraitBoundModifier::None;
+    //             }
+    //         }
+    //     }
+    // }
 
     if predicates.is_empty() {
         None

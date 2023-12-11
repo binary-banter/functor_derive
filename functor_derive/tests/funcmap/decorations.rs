@@ -279,30 +279,30 @@ fn impl_is_restricted_to_trait_bounds_with_bound_lifetimes_in_where_clause_on_or
 }
 
 // todo
-// #[test]
-// fn impl_is_restricted_to_maybe_sized_bound_on_unmapped_generic_in_where_clause_of_original_type() {
-//     trait TestTrait<T: ?Sized> {}
-//
-//     type Unsized = [()];
-//
-//     impl TestTrait<T1> for Unsized {}
-//     impl TestTrait<T2> for Unsized {}
-//
-//     // derived impl for mapping over S is supposed to have no `S: ?Sized` (more
-//     // precisely, no `A: ?Sized` and `B: ?Sized` where `A` and `B` are the
-//     // generic source and target types) but `T: ?Sized` (even though the bound
-//     // for T depends on S)
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Test<S, T>(PhantomData<S>, PhantomData<T>)
-//         where
-//             S: ?Sized,
-//             T: ?Sized + TestTrait<S>;
-//
-//     let src = Test::<T1, Unsized>(PhantomData, PhantomData);
-//     let dst = src.fmap(|_: T1| T2);
-//
-//     assert_eq!(dst, Test(PhantomData, PhantomData));
-// }
+#[test]
+fn impl_is_restricted_to_maybe_sized_bound_on_unmapped_generic_in_where_clause_of_original_type() {
+    trait TestTrait<T: ?Sized> {}
+
+    type Unsized = [()];
+
+    impl TestTrait<T1> for Unsized {}
+    impl TestTrait<T2> for Unsized {}
+
+    // derived impl for mapping over S is supposed to have no `S: ?Sized` (more
+    // precisely, no `A: ?Sized` and `B: ?Sized` where `A` and `B` are the
+    // generic source and target types) but `T: ?Sized` (even though the bound
+    // for T depends on S)
+    #[derive(Debug, PartialEq)]
+    struct Test<S, T>(PhantomData<S>, PhantomData<T>)
+        where
+            S: ?Sized,
+            T: ?Sized + TestTrait<S>;
+
+    let src = Test::<T1, Unsized>(PhantomData, PhantomData);
+    let dst = src.fmap(|_: T1| T2);
+
+    assert_eq!(dst, Test(PhantomData, PhantomData));
+}
 
 #[test]
 fn impl_is_restricted_to_lifetime_bounds_in_where_clause_of_original_type() {
