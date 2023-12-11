@@ -98,14 +98,15 @@ fn generate_map_from_path(
     let enumerated_type_params = args
         .args
         .iter()
-        .filter_map(|arg| {
+        .filter(|param| !matches!(param, GenericArgument::Lifetime(_)))
+        .enumerate()
+        .filter_map(|(idx, arg)| {
             if let GenericArgument::Type(typ) = arg {
-                Some(typ)
+                Some((idx, typ))
             } else {
                 None
             }
         })
-        .enumerate()
         .filter(|(_, typ)| type_contains_param(typ, param));
 
     // Loop over all arguments that contain `param`

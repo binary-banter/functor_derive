@@ -124,7 +124,7 @@ fn find_index(source_params: &[GenericParam], ident: &Ident) -> (usize, usize) {
     for (total, param) in source_params.iter().enumerate() {
         match param {
             GenericParam::Type(t) if &t.ident == ident => return (total, types),
-            GenericParam::Type(_) => types += 1,
+            GenericParam::Type(_) | GenericParam::Const(_) => types += 1,
             _ => {}
         }
     }

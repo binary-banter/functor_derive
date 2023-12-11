@@ -86,45 +86,19 @@ fn field_of_generic_type_with_const_literal_before_generic_type_is_mapped() {
     assert_eq!(dst, Test(Inner(T2, T2)));
 }
 
-// todo: not sure yet how to fix this
-// #[test]
-// fn field_of_generic_type_with_const_alias_before_generic_type_is_mapped() {
-//     #[derive(Functor, Debug, PartialEq)]
-//     struct Inner<const N: usize, S, const M: usize, T>(S, T);
-//
-//     const N: usize = 42;
-//
-//     // here the derive macro cannot know whether `N` is a type or a const
-//     // #[derive(Functor, Debug, PartialEq)]
-//     struct Test<T>(Inner<N, T, N, T>);
-//
-//     #[allow(clippy::all)]
-//     impl<T> ::functor_derive::Functor<T> for Test<T> {
-//         type Target<__B> = Test<__B>;
-//         fn fmap<__B>(self, __f: impl Fn(T) -> __B) -> Test<__B> {
-//             use ::functor_derive::*;
-//             self.__fmap_0_ref(&__f)
-//         }
-//         fn try_fmap<__B, __E>(self, __f: impl Fn(T) -> Result<__B, __E>) -> Result<Test<__B>, __E> {
-//             use ::functor_derive::*;
-//             self.__try_fmap_0_ref(&__f)
-//         }
-//     }
-//     #[allow(clippy::all)]
-//     impl<T> ::functor_derive::Functor0<T> for Test<T> {
-//         type Target<__B> = Test<__B>;
-//         fn __fmap_0_ref<__B>(self, __f: &impl Fn(T) -> __B) -> Test<__B> {
-//             use ::functor_derive::*;
-//             Test(self.0.__fmap_1_ref(__f).__fmap_3_ref(__f))
-//         }
-//         fn __try_fmap_0_ref<__B, __E>(self, __f: &impl Fn(T) -> Result<__B, __E>) -> Result<Test<__B>, __E> {
-//             use ::functor_derive::*;
-//             Ok(Test(self.0.__try_fmap_1_ref(__f)?.__try_fmap_3_ref(__f)?))
-//         }
-//     }
-//
-//     let src = Test(Inner(T1, T1));
-//     let dst = src.fmap(|_| T2);
-//
-//     assert_eq!(dst, Test(Inner(T2, T2)));
-// }
+#[test]
+fn field_of_generic_type_with_const_alias_before_generic_type_is_mapped() {
+    #[derive(Functor, Debug, PartialEq)]
+    struct Inner<const N: usize, S, const M: usize, T>(S, T);
+
+    const N: usize = 42;
+
+    // here the derive macro cannot know whether `N` is a type or a const
+    #[derive(Functor, Debug, PartialEq)]
+    struct Test<T>(Inner<N, T, N, T>);
+
+    let src = Test(Inner(T1, T1));
+    let dst = src.fmap(|_| T2);
+
+    assert_eq!(dst, Test(Inner(T2, T2)));
+}
