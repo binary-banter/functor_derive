@@ -36,7 +36,7 @@ Additionally, a `try_fmap` function is generated. This can be useful for fallibl
 
 ```rust
 let original = MyType { value: "42", list: vec!["1", "3"], unaffected: false };
-let transformed = original.try_fmap( | x| x.parse::<u64>()) ?;
+let transformed = original.try_fmap(|x| x.parse::<u64>())?;
 ```
 
 ## Attribute
@@ -75,7 +75,7 @@ The code below generates 3 methods: `fmap`, `fmap_keys` and `fmap_values`.
 use std::collections::HashMap;
 use std::hash::Hash;
 
-#[functor(T2, T1 as keys, T2 as values)]
+#[functor(V, K as keys, V as values)]
 struct MyHashMap<K: Hash + Eq, V> {
     v: HashMap<K, V>
 }
